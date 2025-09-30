@@ -12,3 +12,7 @@ add_executable(myWorkFlow main.cpp
         src/kernel/poller.c
         src/kernel/rbtree.h
         src/kernel/rbtree.c)
+
+find_package(OpenSSL REQUIRED)
+
+target_link_libraries(myWorkFlow PRIVATE OpenSSL::SSL OpenSSL::Crypto)

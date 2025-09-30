@@ -53,10 +53,14 @@ struct poller_data {
 
     // 根据 operation的不同，会调用与之对应的特定回调函数
     union {
-        poller_message_t * (*creat_message)(void *); // 当fd可读时，调用此函数创建一个 poller_message_t派生对象，用于开始或继续消息的组装
-        int (*partial_written)(size_t, void *); // 在异步发送数据时，每当有部分数据被成功写入内核缓冲区后调用，可用于更新超时时间
-        void * (*accept)(const struct sockaddr *, socklen_t, int, void *); // 当监听socket有新连接到达时调用，用于接受连接并创建新的通信fd
-        void *(*recvfrom)(const struct sockaddr *, socklen_t *, const void *, size_t, void *);
+        /* 当fd可读时，调用此函数创建一个 poller_message_t派生对象，用于开始或继续消息的组装 */
+        poller_message_t * (*creat_message)(void *);
+        /* 在异步发送数据时，每当有部分数据被成功写入内核缓冲区后调用，可用于更新超时时间 */
+        int (*partial_written)(size_t, void *);
+        /* 当监听socket有新连接到达时调用，用于接受连接并创建新的通信fd */
+        void * (*accept)(const struct sockaddr *, socklen_t, int, void *);
+        /* 该回调函数负责解析接收到的数据报(用const void* 接收)，并结合发送方地址(sockaddr*)进行业务逻辑处理 */
+        void *(*recvfrom)(const struct sockaddr *, socklen_t, const void *, size_t, void *);
         void *(*event)(void *);
         void *(*notify)(void *, void *);
     };
@@ -68,8 +72,8 @@ struct poller_data {
     // 在IO操作的不同阶段，用于指向相关的数据缓冲区.
     union {
         poller_message_t *message; // 用于读操作，指向正在组装的 poller_message_t 对象.
-        struct iovec *write_iov; // 用于写操作，指向需要发送的数据块.
-        void *result;
+        struct iovec *write_iov; // 用于写操作，指向需要发送的数据块.可能是个数组，这样可以一次性发送多个iovec块(集中写)。
+        void *result; // 指向连接上下文
     };
 };
 
@@ -106,6 +110,8 @@ struct poller_params {
 #ifdef __cplusplus
 extern "C" {
 
+
+
 #endif
 
 poller_t *poller_creat(const struct poller_params *params);
@@ -117,8 +123,8 @@ int poller_set_timeout(int fd, int timeout, poller_t *poller);
 int poller_add_timer(const struct timespec *value, void *context, void **timer, poller_t *poller);
 int poller_del_timer(void *timer, poller_t *poller);
 void poller_set_callback(void (*callback)(struct poller_result *, void *), poller_t *poller);
-int poller_stop(poller_t *poller);
-int poller_destroy(poller_t *poller);
+void poller_stop(poller_t *poller);
+void poller_destroy(poller_t *poller);
 
 #ifdef __cplusplus
 }

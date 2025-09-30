@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/uio.h>
 
 #ifdef __linux__
 #include <sys/epoll.h>
@@ -24,7 +25,8 @@
 #define POLLER_BUFSIZE      (256 * 1024)
 #define POLLER_EVENTS_MAX   256
 
-/* 一个节点既能挂在链表上，也能挂在红黑树上，使得框架可以根据需要（例如，是否设置超时）用最高效的数据结构来管理它。 */
+/**代表一个异步任务.
+ * 一个__poller_node节点既能挂在链表上，也能挂在红黑树上，使得框架可以根据需要（例如，是否设置超时）用最高效的数据结构来管理它。 */
 struct __poller_node {
     int state;
     int error;
@@ -46,7 +48,7 @@ struct __poller_node {
 /* 维护着所有被监控的描述符，并驱动事件循环 */
 struct __poller {
     size_t max_open_files; // 设定可监控的最大文件描述符数量，防止资源耗尽
-    void (*callback)(struct poller_result *, void *); //当监控的fd有事件发生时，会调用callback函数，并将context作为参数传递，用于处理具体的I/O业务逻辑
+    void (*callback)(struct poller_result *, void *); // 当监控的fd有事件发生时，会调用callback函数，并将context作为参数传递，用于处理具体的I/O业务逻辑
     void *context; // 事件处理的上下文？？？
 
     pthread_t tid; // tid记录了运行事件循环的线程ID
@@ -64,7 +66,7 @@ struct __poller {
     struct list_head no_timeo_list; // 没有设置超时时间的链表
     struct __poller_node **nodes; // 节点指针数组。提供了一种通过文件描述符（fd）作为索引来快速查找对应 __poller_node的方法
     pthread_mutex_t mutex; // 保证在多线程环境下对核心数据结构的访问是线程安全的
-    char buf[POLLER_BUFSIZE]; // 内部缓冲区。用于临时存储I/O数据或控制信息，减少内存分配开销
+    char buf[POLLER_BUFSIZE]; // 内部共享缓冲区。用于临时存储I/O数据或控制信息，减少内存分配开销
 };
 
 #ifdef __linux__
@@ -298,6 +300,7 @@ static inline void __poller_tree_erase(struct __poller_node *node, poller_t *pol
     node->in_rbtree = 0; // 标记 node 已经从红黑数中移除
 }
 
+/* 将node从poller的红黑数或者循环链表中移除 */
 static int __poller_remove_node(struct __poller_node *node, poller_t *poller) {
     pthread_mutex_lock(&poller->mutex);
     int removed = node->removed;
@@ -317,7 +320,8 @@ static int __poller_remove_node(struct __poller_node *node, poller_t *poller) {
     return removed;
 }
 
-/**将网络读取到的数据块（buf）逐步拼装成一条完整的应用层消息，并在消息完整时通知上层处理器
+/**将网络读取到的数据块（buf）逐步拼装成一条完整的应用层消息，并在消息完整时通知上层处理器.
+ * 仅由 __poller_handle_read 函数调用
  * @param buf 指向新读取的数据块
  * @param n 数据块大小
  * @param node 代表一个网络连接上下文，其中data.message字段可能指向一个正在组装的消息
@@ -333,7 +337,7 @@ static int __poller_append_message(const void *buf, size_t *n, struct __poller_n
     int ret = 0;
     if (!msg) {
         // msg为空，说明刚开始组装消息，创建新的消息和结果对象
-        // 创建空间用于存储组装结果
+        // 创建空间用于存储组装结果。这块内存的释放由WorkFlow的通信器（Communicator）模块在后续流程中负责
         res = (struct __poller_node *)malloc(sizeof(struct __poller_node));
         if (!res) {
             return -1;
@@ -371,34 +375,41 @@ static int __poller_append_message(const void *buf, size_t *n, struct __poller_n
     return ret;
 }
 
+/* 处理 SSL 非阻塞 I/O 操作错误 */
 static int __poller_handle_ssl_error(struct __poller_node *node, int ret, poller_t *poller) {
-    int error = SSL_get_error(node->data.ssl, ret);
+    // 通过 SSL_get_error获取具体的错误原因
+    // 关键点: 在非阻塞模式下，SSL 操作可能因底层 I/O 未就绪而无法立即完成，
+    // 此时会返回 SSL_ERROR_WANT_READ或 SSL_ERROR_WANT_WRITE，这不是真正的错误，而是需要等待特定事件的通知
+    const int error = SSL_get_error(node->data.ssl, ret);
     int event;
     switch (error) {
+    // SSL_ERROR_WANT_READ: 表示 SSL 层需要读取更多数据才能继续（如握手数据或解密数据），此时应监听可读事件（EPOLLIN）
     case SSL_ERROR_WANT_READ: {
-        event = EPOLLIN | EPOLLET;
+        event = EPOLLIN | EPOLLET; // 需要等待可读事件
         break;
     }
+    // SSL_ERROR_WANT_WRITE: 表示 SSL 层需要写入数据才能继续（如握手响应或加密数据），此时应监听可写事件（EPOLLOUT）
     case SSL_ERROR_WANT_WRITE: {
-        event = EPOLLOUT | EPOLLET;
+        event = EPOLLOUT | EPOLLET; // 需要等待可写事件
         break;
     }
     default: {
         errno = -error;
     }
     case SSL_ERROR_SYSCALL: {
-        return -1;
+        return -1; // 真实错误，直接失败
     }
     }
 
     if (event == node->event) {
-        return 0;
+        return 0; // 事件未变化，无需修改 epoll
     }
     pthread_mutex_lock(&poller->mutex);
     if (!node->removed) {
+        // 将fd要监听的事件改为event(该函数操作的是内核事件表，所以仍需要手动更新node->event字段)
         ret = __poller_mod_fd(node->data.fd, node->event, event, node, poller);
         if (ret >= 0) {
-            node->event = event;
+            node->event = event; // 更新节点的事件状态
         }
     } else {
         ret = 0;
@@ -407,11 +418,410 @@ static int __poller_handle_ssl_error(struct __poller_node *node, int ret, poller
     return ret;
 }
 
-static int __poller_handle_read(struct __poller_node *node, poller_t *poller) {
-    ssize_t nleft;
+/* 从文件描述符（包括普通 socket 和 SSL 连接）读取数据，并组装成完整的应用层消息 */
+static void __poller_handle_read(struct __poller_node *node, poller_t *poller) {
+    ssize_t nleft; // 存储已接收的字节数
     size_t n;
     char *p;
     while (1) {
-        //
+        p = poller->buf; // 指向共享缓冲区
+        if (!node->data.ssl) {
+            // 普通socket读取
+            nleft = read(node->data.fd, p, POLLER_BUFSIZE);
+            // 如果无数据可读，立即返回
+            if (nleft < 0 && errno == EAGAIN) { return; }
+        } else {
+            // SSL读取
+            nleft = SSL_read(node->data.ssl, p, POLLER_BUFSIZE);
+            if (nleft <= 0) {
+                // 处理SSL错误
+                if (__poller_handle_ssl_error(node, nleft, poller) >= 0) { return; }
+                if (errno == -SSL_ERROR_ZERO_RETURN) {
+                    nleft = 0;
+                } else { nleft = -1; }
+            }
+        }
+        if (nleft <= 0) {
+            break;
+        }
+        // 该循环将TCP粘包问题交给了上层去处理。
+        // __poller_append_message()会调用上层回调函数，对接收到的数据交给上层进行处理
+        // 上层就避免不了对数据进行拆包
+        do {
+            n = nleft;
+            // __poller_append_message()会修改 n 为实际接收的字节数
+            if (__poller_append_message(p, &n, node, poller) >= 0) {
+                nleft -= n; // 消费已处理的数据
+                p += n; // 移动缓冲区指针
+            } else {
+                nleft = -1; // 消息组装出现错误（如协议错误）
+            }
+        } while (nleft > 0); // 只要还有未处理的数据就继续
+
+        if (nleft < 0) {
+            // 当__poller_append_message返回-1（如消息解析失败），会设置nleft = -1。
+            // 此判断会检测到该错误，并break跳出外层的while(1)读数据循环，进入错误处理流程（如关闭连接）
+            break;
+        }
+
+        if (node->removed) {
+            // 这是一个重要的异步安全措施。
+            // 在非阻塞多线程环境中，可能在处理数据的期间，另一个线程（比如因为超时或主动关闭）已经移除了这个连接（node）。
+            // 如果发现node->removed被标记，函数立即return，避免对一个已失效的连接进行任何后续操作
+            return;
+        }
     }
+    if (__poller_remove_node(node, poller)) {
+        // 确保节点已经被正式从poller的监控中移除，从而避免任何后续可能的无效操作
+        return;
+    }
+    if (nleft == 0) {
+        // nleft==0 表示对端连接已经关闭
+        node->error = 0;
+        node->state = PR_ST_FINISHED; // 连接正常关闭
+    } else {
+        node->error = errno;
+        node->state = PR_ST_ERROR; // 读取错误
+    }
+
+    free(node->res);
+    poller->callback((struct poller_result *)node, poller->context);
+}
+
+#ifndef IOV_MAX
+#define IOV_MAX     16
+#endif
+
+
+/* 将数据写入 socket（包括普通 TCP 和 SSL 连接），并管理写缓冲区的状态 */
+static void __poller_handler_write(struct __poller_node *node, poller_t *poller) {
+    struct iovec *iov = node->data.write_iov; // iov可能是一个iovec数组
+    size_t count = 0; // 本次调用累计已经写入的字节数
+    ssize_t nleft; // 单次系统调用已经写入的字节数
+    int iovcnt; // 当前批次处理的iovec数量
+    int ret = 0; // 错误状态标识
+
+    // 只要还有数据待写入就持续尝试
+    while (node->data.iovcnt > 0) {
+        if (!node->data.ssl) {
+            // 普通TCP写入
+            iovcnt = node->data.iovcnt;
+            if (iovcnt > IOV_MAX) {
+                // 限制单次写入的iovec的数量
+                iovcnt = IOV_MAX;
+            }
+            /* writev: 将iov数组中的iovcnt个块一并写入文件描述符中. 即: 集中写 */
+            nleft = writev(node->data.fd, iov, iovcnt);
+            if (nleft < 0) {
+                ret = errno == EAGAIN ? 0 : 1; // EAGAIN表示缓冲区写满，非错误
+                break;
+            }
+        } else if (iov->iov_len > 0) {
+            // SSL写入，单次只处理一个iovec块（SSL协议限制）
+            nleft = SSL_write(node->data.ssl, iov->iov_base, iov->iov_len);
+            if (nleft <= 0) {
+                ret = __poller_handle_ssl_error(node, nleft, poller); // 处理SSL重协商等
+                break;
+            }
+        } else {
+            // iov->iov_len==0，跳过。
+            nleft = 0;
+        }
+        count += nleft;
+        do {
+            if (nleft >= iov->iov_len) {
+                // 当前iovec已全部写入: 移动到下一个iovec
+                nleft -= iov->iov_len;
+                iov->iov_base = (char *)iov->iov_base + iov->iov_len;
+                iov->iov_len = 0; // 移动到下一个iovec之前先将当前iov_len置为0
+                iov++;
+                node->data.iovcnt--;
+            } else {
+                // 当前iovec部分写入，调整基址和长度
+                iov->iov_base = (char *)iov->iov_base + nleft;
+                iov->iov_len -= nleft; // 更新当前iovec块的长度
+                break;
+            }
+        } while (node->data.iovcnt > 0);
+    }
+
+    node->data.write_iov = iov; // 保存当前iovec位置(可能有数据没写完(缓冲区已满))
+    // 还有数据待写入且无错误
+    if (node->data.iovcnt > 0 && ret >= 0) {
+        // count==0: 本次未写入任何数据，直接返回等待下次事件
+        if (count == 0) { return; }
+        // 通过回调通知上层"部分写入"，可能会更新超时时间
+        // 当partial_writen返回false时，说明上层的业务处理出现了问题，此时不return
+        // 而是进入后续流程，清理未发送的数据。因为业务已经出错，此时没写入的数据也已经失效
+        if (node->data.partial_written(count, node->data.context) >= 0) { return; }
+    }
+    // 清理节点并回调。
+    // 如果是出错的情况，则直接丢弃未写入的数据。
+    if (__poller_remove_node(node, poller)) { return; }
+    // 设置最终状态
+    if (node->data.iovcnt == 0) {
+        node->error = 0;
+        node->state = PR_ST_FINISHED; // 写入完成
+    } else {
+        node->error = errno;
+        node->state = PR_ST_ERROR; // 写入出错
+    }
+
+    // 异步通知上层
+    poller->callback((struct poller_result *)node, poller->context);
+}
+
+/* 非阻塞accept新连接 */
+static void __poller_handle_listen(struct __poller_node *node, poller_t *poller) {
+    struct __poller_node *res = node->res; // 存储连接建立的结果
+    struct sockaddr_storage ss;
+    struct sockaddr *addr = (struct sockaddr *)&ss;
+    socklen_t addrlen;
+
+    while (1) {
+        addrlen = sizeof(struct sockaddr_storage); //
+        const int sockfd = accept(node->data.fd, addr, &addrlen);
+        if (sockfd < 0) {
+            if (errno == EAGAIN || errno == EMFILE || errno == ENFILE) return; // 临时性错误，返回等待下一次事件
+            else if (errno == ECONNABORTED) continue; // 连接中止。忽略并继续接收下一个
+            else break; // 其他严重错误，跳出循环
+        }
+        void *result = node->data.accept(addr, addrlen, sockfd, node->data.context);
+        if (!result) { break; } // accept返回NULL，表示创建上下文失败，跳出循环
+        res->data = node->data;
+        res->data.result = result; // 存储新创建的连接上下文
+        res->error = 0;
+        res->state = PR_ST_SUCCESS;
+        // 将node复制一份，利用副本通过回调机制通知上层
+        poller->callback((struct poller_result *)res, poller->context);
+
+        // 通知完成后，它立即为下一次可能的连接接受分配新的资源。res的内存应该会在callback()中被释放掉，因此此处需要重新申请
+        // 这种 预先分配 的策略旨在提升性能，避免在连续到达大量新连接时频繁进行内存分配
+        res = (struct __poller_node *)malloc((sizeof(struct __poller_node)));
+        node->res = res; // 更新node的res指针，为下一次accept做准备
+        if (!res) { break; } // 如果分配失败，则退出循环
+        if (node->removed) { return; }
+    }
+
+    /**循环一般情况下不会终止。循环终止的情况如下:
+     * 严重错误：如 accept调用返回不可恢复的错误。
+     * 资源分配失败：如无法为下一次 accept分配 res内存。
+     * 回调失败：node->data.accept返回 NULL。
+     */
+    // 循环终止，将监听节点node从poller中移除
+    if (__poller_remove_node(node, poller)) { return; }
+    node->error = errno;
+    node->state = PR_ST_ERROR; // 设置错误状态
+    free(node->res); // 释放循环中预分配的资源
+    poller->callback((struct poller_result *)res, poller->context); // 通知上层监听失败
+}
+
+/* 当框架发起一个非阻塞的 TCP 连接后，这个函数负责检查连接是否成功建立，并向上层报告最终结果 */
+static void __poller_handle_connect(struct __poller_node *node, poller_t *poller) {
+    socklen_t len = sizeof(int);
+    int error;
+    /* 使用 getsockopt 函数并指定 SO_ERROR选项，来获取这个 socket 上异步连接操作的真实结果 */
+    if (getsockopt(node->data.fd, SOL_SOCKET, SO_ERROR, &error, &len) < 0) { error = errno; }
+    /**为什么这么设计？
+     * 发起非阻塞连接后，即使 connect系统调用返回了 EINPROGRESS（表示连接正在进行中），连接也可能在后台成功或失败。
+     * 当 epoll 检测到该 socket 可写时，并不意味着连接成功，只意味着连接过程有了结果（可能成功也可能失败）。
+     * 此时必须使用 getsockopt(fd, SOL_SOCKET, SO_ERROR, ...)来获取确切的错误码。
+     * 如果连接成功，error将被设置为 0；如果失败，则会被设置为具体的错误码（如 ECONNREFUSED）。这是 Linux 下处理非阻塞连接的标准方法
+     */
+    /**清理
+     * 无论连接成功与否，都调用 __poller_remove_node将对应的 __poller_node节点从 poller 的监控（如 epoll 实例、超时定时器）中移除。
+     * 这是因为连接建立阶段已经完成，不再需要监听该 socket 的可写事件来确认连接状态
+     * 如果移除操作本身失败（例如节点已被移除），函数直接返回，避免后续操作
+     */
+    if (__poller_remove_node(node, poller)) { return; }
+    if (error) {
+        node->error = 0;
+        node->state = PR_ST_FINISHED; // 连接已就绪，可以进行后续的数据收发了
+    } else {
+        node->error = error;
+        node->state = PR_ST_ERROR; // 状态设为 PR_ST_ERROR，并将具体的错误码保存在 node->error中，便于上层诊断（如连接被拒绝、超时等）
+    }
+
+    /**通过 poller->callback将结果（即 poller_result）投递到消息队列中.
+     * 在 WorkFlow 中，这个回调通常是 Communicator::callback，它会将结果交给独立的 Handler 线程进行处理，从而不阻塞 poller 线程的事件循环
+     */
+    poller->callback((struct poller_result *)node, poller->context);
+}
+
+/* 处理无连接协议（如UDP）数据接收的核心异步I/O处理函数 */
+static void __poller_handle_recvfrom(struct __poller_node *node, poller_t *poller) {
+    struct __poller_node *res = node->res; // 存储数据接收的结果。但并不直接存储接收的数据
+    struct sockaddr_storage ss;
+    struct sockaddr *addr = (struct sockaddr *)&ss;
+    socklen_t addrlen;
+
+    while (1) {
+        addrlen = sizeof(struct sockaddr_storage);
+        /**addr和 addrlen用于获取发送方的地址信息，这对于UDP协议是必需的，因为每个数据报可能来自不同的客户端
+         * 同时addr是直接传递指针，addrlen是引用传递 */
+        ssize_t n = recvfrom(node->data.fd, poller->buf, POLLER_BUFSIZE, 0, addr, &addrlen);
+        if (n < 0) {
+            // n<0 说明出现错误
+            if (errno == EAGAIN) {
+                // 如果recvfrom返回EAGAIN，表示内核缓冲区暂无数据可读，直接return. 等待下次可读事件
+                return;
+            } else {
+                break; // 其他错误，跳出while，然后调用callback通知上层
+            }
+        }
+
+        // 调用回调函数, 传递上下文context, 交由上层处理接收到的数据
+        void *result = node->data.recvfrom(addr, addrlen, poller->buf, n, node->data.context);
+        if (!result) break; // 如果该回调返回 NULL，通常表示协议解析错误或内存分配失败，当前循环会终止。
+
+        res->data = node->data;
+        res->data.result = result; // 存储协议回调返回的结果
+        res->error = 0;
+        res->state = PR_ST_SUCCESS;
+        /* 通过callback将结果投递到消息队列，由后台Handler线程池消费，从而不阻塞I/O线 */
+        poller->callback((struct poller_result *)res, poller->context);
+
+        // 为下一个可能到达的数据报预分配资源
+        res = (struct __poller_node *)malloc(sizeof(struct __poller_node));
+        node->res = res;
+        if (!res) { break; } // 内存分配失败则退出循环
+
+        if (node->removed) { return; } // 检查节点是否已被移除
+    }
+
+    /* 跳出while循环说明出错，将当前事件从监听poller中删除，同时设置错误信息，通过callback上报给上层 */
+    if (__poller_remove_node(node, poller)) { return; }
+
+    node->error = errno;
+    node->state = PR_ST_ERROR;
+    free(node->res);
+    poller->callback((struct poller_result *)node, poller->context);
+}
+
+static void __poller_handle_ssl_accept(struct __poller_node *node, poller_t *poller) {
+    const int ret = SSL_accept(node->data.ssl); //
+
+    if (ret <= 0) {
+        if (__poller_handle_ssl_error(node, ret, poller) >= 0) return;
+    }
+
+    if (__poller_remove_node(node, poller)) return;
+
+    if (ret > 0) {
+        node->error = 0;
+        node->state = PR_ST_FINISHED;
+    } else {
+        node->error = errno;
+        node->state = PR_ST_ERROR;
+    }
+
+    poller->callback((struct poller_result *)node, poller->context);
+}
+
+static void __poller_handle_ssl_connect(struct __poller_node *node, poller_t *poller) {
+    //
+}
+
+static void __poller_handle_ssl_shutdown(struct __poller_node *node, poller_t *poller) {
+    //
+}
+
+static void __poller_handle_event(struct __poller_node *node, poller_t *poller) {
+    //
+}
+
+static void __poller_handle_notify(struct __poller_node *node, poller_t *poller) {
+    //
+}
+
+static int __poller_handle_pipe(poller_t *poller) {
+    //
+}
+
+static void __poller_handle_timeout(const struct __poller_node *time_node, poller_t *poller) {
+    //
+}
+
+static void __poller_set_timer(poller_t *poller) {
+    //
+}
+
+static void *__poller_thread_routine(void *arg) {
+    //
+}
+
+static int __poller_open_pipe(poller_t *poller) {
+    //
+}
+
+static int __poller_create_timer(poller_t *poller) {
+    //
+}
+
+poller_t *__poller_create(void **nodes_buf, const struct poller_params *params) {
+    //
+}
+
+poller_t *poller_create(const struct poller_params *params) {
+    //
+}
+
+void __poller_destroy(poller_t *poller) {
+    //
+}
+
+void poller_destroy(poller_t *poller) {
+    //
+}
+
+int poller_start(poller_t *poller) {
+    //
+}
+
+static void __poller_insert_node(struct __poller_node *node, poller_t *poller) {
+    //
+}
+
+static void __poller_node_set_timeout(int timeout, struct __poller_node *node) {
+    //
+}
+
+static int __poller_data_get_event(int *event, const struct poller_data *data) {
+    //
+}
+
+static struct __poller_node *__poller_new_node(const struct poller_data *data, int timeout, poller_t *poller) {
+    //
+}
+
+int poller_add(const struct poller_data *data, int timeout, poller_t *poller) {
+    //
+}
+
+int poller_del(int fd, poller_t *poller) {
+    //
+}
+
+int poller_mod(const struct poller_data *data, int timeout, poller_t *poller) {
+    //
+}
+
+int poller_set_timeout(int fd, int timeout, poller_t *poller) {
+    //
+}
+
+int poller_add_timer(const struct timespec *value, void *context, void **timer, poller_t *poller) {
+    //
+}
+
+int poller_del_timer(void *timer, poller_t *poller) {
+    //
+}
+
+void poller_set_callback(void (*callback)(struct poller_result *, void *), poller_t *poller) {
+    //
+}
+
+void poller_stop(poller_t *poller) {
+    //
 }
