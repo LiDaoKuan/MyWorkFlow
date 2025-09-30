@@ -1,0 +1,3 @@
+/home/ldk/Documents/ClionProject/myWorkFlow/build/CMakeFiles/myWorkFlow.dir
+/home/ldk/Documents/ClionProject/myWorkFlow/build/CMakeFiles/edit_cache.dir
+/home/ldk/Documents/ClionProject/myWorkFlow/build/CMakeFiles/rebuild_cache.dir
