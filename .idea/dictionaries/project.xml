@@ -1,6 +1,7 @@
 <component name="ProjectDictionaryState">
   <dictionary name="project">
     <words>
+      <w>abstime</w>
       <w>addrlen</w>
       <w>bufsize</w>
       <w>deinit</w>
@@ -8,9 +9,16 @@
       <w>gparent</w>
       <w>iovcnt</w>
       <w>iovec</w>
+      <w>maxevents</w>
       <w>newnode</w>
       <w>nleft</w>
+      <w>nsec</w>
+      <w>pollfd</w>
+      <w>rbtree</w>
       <w>recvfrom</w>
+      <w>stoped</w>
+      <w>timeo</w>
+      <w>timerfd</w>
     </words>
   </dictionary>
 </component>

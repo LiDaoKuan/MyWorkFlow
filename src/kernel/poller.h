@@ -67,7 +67,7 @@ struct poller_data {
 
     // 在IO操作的不同阶段，用于指向相关的数据缓冲区.
     union {
-        poller_message_t *message; // 用于读操作，指向正在组装的 poller_message_t对象.
+        poller_message_t *message; // 用于读操作，指向正在组装的 poller_message_t 对象.
         struct iovec *write_iov; // 用于写操作，指向需要发送的数据块.
         void *result;
     };
@@ -105,6 +105,7 @@ struct poller_params {
  */
 #ifdef __cplusplus
 extern "C" {
+
 #endif
 
 poller_t *poller_creat(const struct poller_params *params);
@@ -122,6 +123,5 @@ int poller_destroy(poller_t *poller);
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif //MYWORKFLOW_POLLER_H

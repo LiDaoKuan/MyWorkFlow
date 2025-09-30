@@ -51,7 +51,7 @@ static void __rb_rotate_right(struct rb_node *node, struct rb_root *root) {
     node->rb_parent = left;
 }
 
-/* 向红黑数中插入 红色 节点 */
+/* 平衡新插入红黑树的红色节点node */
 void rb_insert_color(struct rb_node *node, struct rb_root *root) {
     struct rb_node *parent;
 
@@ -124,41 +124,86 @@ static void __rb_erase_color(struct rb_node *node, struct rb_node *parent, struc
     // 如果node!=nullptr, 判断node是否为黑色, 如果是黑色, 则判断是不是整个树的根节点(红色不可能是根节点), 是根节点则直接跳出循环
     while ((!node || node->rb_color == RB_BLACK) && node != root->rb_node) {
         if (parent->rb_left == node) {
+            // other指向node的兄弟节点
             other = parent->rb_right;
             if (other->rb_color == RB_RED) {
+                // 如果兄弟为红色，那么: 兄变黑，父变红，左旋父亲
                 other->rb_color = RB_BLACK;
                 parent->rb_color = RB_RED;
                 __rb_rotate_left(parent, root);
+                // 更新兄弟节点指针。并且这个新的兄弟节点必定是黑色。因为原红色兄弟节点的左孩子根据红黑树性质必须是黑色。
+                // 这样就转化为了兄弟节点是黑色的情况
                 other = parent->rb_right;
             }
+            // 下面处理兄弟节点是黑色的情况
+            // if: 兄弟左子树不存在或者兄弟的左子节点为黑色 && 兄弟的右子结点不存在或者兄弟的右子结点为黑色
+            // 总结: 兄弟节点是黑色并且兄弟节点的两个子节点也是黑色(即便兄弟没有子节点，也会有两个隐藏的黑色空叶子节点)
             if ((!other->rb_left || other->rb_left->rb_color == RB_BLACK)
                 && (!other->rb_right || other->rb_right->rb_color == RB_BLACK)) {
+                // 兄弟变红。将"被删除的黑色"向上移动，转移到父亲节点上去解决
                 other->rb_color = RB_RED;
+                // 递归处理父亲结点.
                 node = parent;
                 parent = node->rb_parent;
             } else {
+                // 兄弟节点的右子结点为黑色(即: 兄弟的左子节点为红色)
                 if (!other->rb_right || other->rb_right->rb_color == RB_BLACK) {
+                    // 通过变色和旋转将情况转换为: 兄弟节点的右子结点为红色的情况
                     struct rb_node *o_left;
                     if ((o_left = other->rb_left)) {
+                        // 令兄弟节点的左子节点由红变黑
                         o_left->rb_color = RB_BLACK;
                     }
-                    other->rb_color = RB_RED;
-                    __rb_rotate_right(other, root);
-                    other = parent->rb_right;
+                    other->rb_color = RB_RED; // 兄弟节点变黑
+                    __rb_rotate_right(other, root); // 右旋兄弟节点
+                    other = parent->rb_right; // 更新新的兄弟节点
                 }
+                // 下面处理兄弟节点为黑色，其右子节点为红色的情况
+                // 兄变父色，父变黑色，兄弟的右子结点变黑色。然后左旋父亲节点
                 other->rb_color = parent->rb_color;
                 parent->rb_color = RB_BLACK;
                 if (other->rb_right) {
                     other->rb_right->rb_color = RB_BLACK;
                 }
                 __rb_rotate_left(parent, root);
-                node = root->rb_node;
+                node = root->rb_node; // node指向根节点，退出循环
                 break;
             }
         } else {
+            // 上述情况的对称情况
             other = parent->rb_left;
+            if (other->rb_color == RB_RED) {
+                other->rb_color = RB_BLACK;
+                parent->rb_color = RB_RED;
+                __rb_rotate_right(parent, root);
+                other = parent->rb_left;
+            }
+            if ((!other->rb_left ||
+                 other->rb_left->rb_color == RB_BLACK)
+                && (!other->rb_right ||
+                    other->rb_right->rb_color == RB_BLACK)) {
+                other->rb_color = RB_RED;
+                node = parent;
+                parent = node->rb_parent;
+            } else {
+                if (!other->rb_left ||
+                    other->rb_left->rb_color == RB_BLACK) {
+                    register struct rb_node *o_right;
+                    if ((o_right = other->rb_right)) o_right->rb_color = RB_BLACK;
+                    other->rb_color = RB_RED;
+                    __rb_rotate_left(other, root);
+                    other = parent->rb_left;
+                }
+                other->rb_color = parent->rb_color;
+                parent->rb_color = RB_BLACK;
+                if (other->rb_left) other->rb_left->rb_color = RB_BLACK;
+                __rb_rotate_right(parent, root);
+                node = root->rb_node;
+                break;
+            }
         }
     }
+    // node最后一定会指向根节点。保证根节点是黑色
     if (node) {
         node->rb_color = RB_BLACK;
     }

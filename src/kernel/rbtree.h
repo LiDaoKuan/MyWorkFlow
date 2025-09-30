@@ -119,6 +119,9 @@ struct rb_root {
 
 #ifdef __cplusplus
 extern "C" {
+
+
+
 #endif
 
 extern void rb_insert_color(struct rb_node *node, struct rb_root *root);
@@ -133,14 +136,20 @@ extern void rb_replace_node(const struct rb_node *victim, struct rb_node *newnod
 
 #ifdef __cplusplus
 }
+#endif
 
+/**
+ * 在红黑数的parent节点下插入新节点node. 该函数不关心红黑数的平衡
+ * @param node 指向要插入的新节点
+ * @param parent 指向新节点在树中的父节点
+ * @param link 一个指向指针的指针. 它指向父节点 parent中应该挂载新节点的位置（即 parent->rb_left或 parent->rb_right的地址）
+ */
 static inline void rb_link_node(struct rb_node *node, struct rb_node *parent, struct rb_node **link) {
-    node->rb_parent = parent;
-    node->rb_color = RB_RED;
-    node->rb_left = node->rb_right = (struct rb_node *)0;
-
+    node->rb_parent = parent; // 设置父亲节点
+    node->rb_color = RB_RED; // 初始化颜色
+    node->rb_left = node->rb_right = (struct rb_node *)0; // 叶子结点置null、
+    // 将新节点node赋值给父亲节点中对应的子指针, 完成节点在树中的连接
     *link = node;
 }
-#endif
 
 #endif //MYWORKFLOW_RBTREE_H
