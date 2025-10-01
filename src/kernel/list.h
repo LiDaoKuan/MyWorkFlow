@@ -67,12 +67,13 @@ static inline void list_del(struct list_head *entry) {
     __list_del(entry->prev, entry->next);
 }
 
-/* 将entry移动到链表头 */
+/* 将entry移动到链表head的头部。entry可能原本属于另一个链表 */
 static inline void list_move(struct list_head *entry, struct list_head *head) {
     __list_del(entry->prev, entry->next);
     list_add(entry, head);
 }
 
+/* 将entry移动到链表head的尾部。entry可能原本属于另一个链表 */
 static inline void list_move_tail(struct list_head *entry, struct list_head *head) {
     __list_del(entry->prev, entry->next);
     list_add_tail(entry, head);

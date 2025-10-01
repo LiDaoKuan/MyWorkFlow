@@ -5,6 +5,7 @@
       <w>addrlen</w>
       <w>bufsize</w>
       <w>deinit</w>
+      <w>epollet</w>
       <w>epollin</w>
       <w>epolloneshot</w>
       <w>epollout</w>
@@ -16,6 +17,7 @@
       <w>newnode</w>
       <w>nleft</w>
       <w>nsec</w>
+      <w>pipefd</w>
       <w>pollfd</w>
       <w>rbtree</w>
       <w>recvfrom</w>

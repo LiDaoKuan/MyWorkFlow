@@ -33,6 +33,7 @@ struct __poller_message {
 
 /* 单次IO操作的上下文容器 */
 struct poller_data {
+    // -1 表示管道读事件
 #define PD_OP_TIMER			0
 #define PD_OP_READ			1
 #define PD_OP_WRITE			2
@@ -61,7 +62,9 @@ struct poller_data {
         void * (*accept)(const struct sockaddr *, socklen_t, int, void *);
         /* 该回调函数负责解析接收到的数据报(用const void* 接收)，并结合发送方地址(sockaddr*)进行业务逻辑处理 */
         void *(*recvfrom)(const struct sockaddr *, socklen_t, const void *, size_t, void *);
+        /* 处理非网络文件描述符 (fd) 的异步 I/O 事件，如磁盘文件、管道或信号事件 */
         void *(*event)(void *);
+        /* 实现内部线程间通知或用户自定义的轻量级事件处理。用于安全地唤醒阻塞在 I/O 多路复用调用（如 epoll_wait）上的线程，并传递内部消息 */
         void *(*notify)(void *, void *);
     };
 
