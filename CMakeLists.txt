@@ -14,7 +14,8 @@ add_executable(myWorkFlow main.cpp
         src/kernel/rbtree.c
         src/kernel/IOService_linux.h
         src/kernel/mpoller.h
-        src/kernel/mpoller.c)
+        src/kernel/mpoller.c
+        src/kernel/IOService_linux.cpp)
 
 find_package(OpenSSL REQUIRED)
 

@@ -2,8 +2,6 @@
 // Created by ldk on 10/3/25.
 //
 
-#include "mpoller.h"
-
 #include <stddef.h>
 #include <stdlib.h>
 #include "poller.h"

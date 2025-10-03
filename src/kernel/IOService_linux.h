@@ -22,8 +22,8 @@ private:
 protected:
     void prep_pread(int fd, void *buf, size_t count, long long offset);
     void prep_pwrite(int fd, void *buf, size_t count, long long offset);
-    void prep_preadv(int fd, struct iovec *iov, int iovcnt, long long offset);
-    void prep_pwritev(int fd, struct iovec *iov, int iovcnt, long long offset);
+    void prep_preadv(int fd, const struct iovec *iov, int iovcnt, long long offset);
+    void prep_pwritev(int fd, const struct iovec *iov, int iovcnt, long long offset);
     void prep_fsync(int fd);
     void prep_fdsync(int fd);
 
