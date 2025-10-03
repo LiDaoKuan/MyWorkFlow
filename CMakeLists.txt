@@ -11,7 +11,10 @@ add_executable(myWorkFlow main.cpp
         src/kernel/poller.h
         src/kernel/poller.c
         src/kernel/rbtree.h
-        src/kernel/rbtree.c)
+        src/kernel/rbtree.c
+        src/kernel/IOService_linux.h
+        src/kernel/mpoller.h
+        src/kernel/mpoller.c)
 
 find_package(OpenSSL REQUIRED)
 

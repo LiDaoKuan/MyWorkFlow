@@ -26,7 +26,7 @@ struct __poller_message {
      * 4. size_t参数: 这是一个双向参数. append方法通过它告诉框架本次调用消费了多少数据，即使消息未完整收完，也可以分批处理 */
     int (*append)(const void *, size_t *, poller_message_t *);
     /**C语言中的一种常用技巧，也称为“柔性数组”. 可以写成: int a[]; 或者 int a[0];
-     * 允许在分配 poller_message_t内存时，额外分配一片连续的空间来存储协议相关的数据（如HTTP头部、请求体等）.
+     * 允许在分配 poller_message_t 内存时，额外分配一片连续的空间来存储协议相关的数据(如HTTP头部、请求体等).
      * 这样做的好处是内存连续，一次分配即可容纳结构体和数据，效率高，并且能更好地利用缓存. */
     char data[0];
 };

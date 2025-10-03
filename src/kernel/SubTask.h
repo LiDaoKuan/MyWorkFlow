@@ -34,7 +34,7 @@ private:
     class ParallelTask *parent_;
     // 用户数据指针. 提供get/set_pointer()方法，让任务能携带任意用户数据
     void *pointer_;
-    /* 使用pointer指针注意事项：
+    /* 使用pointer指针注意事项:
      * 1. 你需要确保在回调函数中，将 void*指针转换回它原本的、正确的类型
      * 2. pointer指针指向的内存如果是由用户动态创建的，那也应该由用户动态释放（谁创建，谁释放）*/
 
@@ -58,13 +58,13 @@ public:
     void dispatch() override;
 
 protected:
-    // 子任务数组指针：指向一个由子任务指针构成的数组，是并行执行的实体。
+    // 子任务数组指针: 指向一个由子任务指针构成的数组，是并行执行的实体
     SubTask **subtasks;
-    // 子任务数量：明确本次并行操作需要管理的子任务总数。
+    // 子任务数量: 明确本次并行操作需要管理的子任务总数
     size_t subtask_nr;
 
 private:
-    /**剩余任务计数器: 用于同步。追踪尚未完成的子任务数量
+    /**剩余任务计数器: 用于同步. 追踪尚未完成的子任务数量
      * nleft初始值==subtask_nr, 每完成一个子任务， nleft-1
      * 当nleft==0时，意味着所有子任务都已经完成
      * 这正是 CountDownLatch（闭锁）同步模式的经典实现

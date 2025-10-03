@@ -105,6 +105,7 @@ static inline void list_splice(const struct list_head *list, struct list_head *h
     }
 }
 
+/**将整个源链表 list 拼接到目标链表的 head 之后的位置, 同时初始化源链表为空链表*/
 static inline void list_splice_init(struct list_head *list, struct list_head *head) {
     if (!list_is_empty(list)) {
         __list_splice(list, head, head->next);

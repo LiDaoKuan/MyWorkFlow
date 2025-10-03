@@ -7,7 +7,7 @@
 void SubTask::subtask_done() {
     SubTask *cur = this;
     ParallelTask *parent = nullptr;
-    while (1) {
+    while (true) {
         parent = cur->parent_; // 记录当前任务的父任务
         cur = cur->done(); // 此处是多态。
         // cur->done()返回下一个要执行的任务。如果不存在则返回nullptr

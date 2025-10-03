@@ -9,16 +9,22 @@
       <w>epollin</w>
       <w>epolloneshot</w>
       <w>epollout</w>
+      <w>fdsync</w>
       <w>getsockopt</w>
       <w>gparent</w>
       <w>iovcnt</w>
       <w>iovec</w>
       <w>maxevents</w>
+      <w>mpoller</w>
       <w>newnode</w>
       <w>nleft</w>
       <w>nsec</w>
+      <w>nthreads</w>
       <w>pipefd</w>
       <w>pollfd</w>
+      <w>preadv</w>
+      <w>pwrite</w>
+      <w>pwritev</w>
       <w>rbtree</w>
       <w>recvfrom</w>
       <w>sockaddr</w>
@@ -26,6 +32,7 @@
       <w>stoped</w>
       <w>timeo</w>
       <w>timerfd</w>
+      <w>toreply</w>
     </words>
   </dictionary>
 </component>
