@@ -5,10 +5,10 @@
 #ifndef _LINUX_LIST_H
 #define _LINUX_LIST_H
 
-/**循环双链表实现。
- * 部分内部函数（"__xxx"）在操作整个链表而非单个条目时非常有用，
- * 因为有时我们已经知道下一个/前一个条目，直接使用它们（而非使用
- * 通用的单条目例程）可以生成更高效的代码。*/
+/**循环双链表实现.
+ * 部分内部函数（"__xxx"）在操作整个链表而非单个条目时非常有用,
+ * 因为有时我们已经知道下一个/前一个条目, 直接使用它们（而非使用
+ * 通用的单条目例程）可以生成更高效的代码. */
 
 /**循环双向链表. 带头节点！即：有一个节点list，作为头结点，不存储信息，但是也在循环中 */
 struct list_head {
@@ -63,6 +63,7 @@ static inline void __list_del(struct list_head *prev, struct list_head *next) {
     prev->next = next;
 }
 
+/* 删除节点 */
 static inline void list_del(struct list_head *entry) {
     __list_del(entry->prev, entry->next);
 }

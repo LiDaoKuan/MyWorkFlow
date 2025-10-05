@@ -4,32 +4,47 @@
       <w>abstime</w>
       <w>addrlen</w>
       <w>bufsize</w>
+      <w>ctxp</w>
       <w>deinit</w>
+      <w>dptr</w>
       <w>epollet</w>
       <w>epollin</w>
       <w>epolloneshot</w>
       <w>epollout</w>
+      <w>eventfd</w>
       <w>fdsync</w>
+      <w>fildes</w>
+      <w>getevents</w>
       <w>getsockopt</w>
       <w>gparent</w>
+      <w>iocb</w>
+      <w>ioservice</w>
       <w>iovcnt</w>
       <w>iovec</w>
       <w>maxevents</w>
       <w>mpoller</w>
+      <w>msgqueue</w>
+      <w>nbytes</w>
       <w>newnode</w>
       <w>nleft</w>
       <w>nsec</w>
       <w>nthreads</w>
+      <w>padde</w>
       <w>pipefd</w>
       <w>pollfd</w>
       <w>preadv</w>
       <w>pwrite</w>
       <w>pwritev</w>
       <w>rbtree</w>
+      <w>readv</w>
       <w>recvfrom</w>
+      <w>reqprio</w>
+      <w>resfd</w>
+      <w>saddr</w>
       <w>sockaddr</w>
       <w>sockfd</w>
       <w>stoped</w>
+      <w>thrdpoll</w>
       <w>timeo</w>
       <w>timerfd</w>
       <w>toreply</w>

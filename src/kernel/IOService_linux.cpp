@@ -10,6 +10,8 @@
 #include "IOService_linux.h"
 
 #include <cstring>
+#include <iostream>
+#include <ostream>
 #include <asm/unistd_64.h>
 
 /* Linux async I/O interface from libaio.h */
@@ -117,6 +119,7 @@ struct io_iocb_vector {
     long long offset;
 };
 
+// I/O控制块: 固定大小: 64 Byte
 struct iocb {
     PADDEDptr(void* data, __pad1);
     PADDED(unsigned key, aio_rw_flags);
@@ -148,7 +151,10 @@ struct io_event {
 #undef PADDEDptr
 #undef PADDEDul
 
-/* 创建并初始化一个异步I/O上下文 */
+// 创建并初始化一个异步I/O上下文.
+// 注意参数ctxp是一个二重指针
+// 如果创建成功, (*ctxp)会指向创建完成的上下文, 该上下文是内核和应用程序之间进行异步IO通信的控制中心, 同时函数还会返回非负值
+// 如果创建失败, 则返回小于0的值
 static inline int io_setup(int maxevents, io_context_t *ctxp) {
     return syscall(__NR_io_setup, maxevents, ctxp);
 }
@@ -168,16 +174,18 @@ static inline int io_cancel(io_context_t ctx, struct iocb *iocb, struct io_event
     return syscall(__NR_io_cancel, ctx, iocb, evt);
 }
 
-/* 获取已完成的I/O事件, 调用它会阻塞当前线程, 直到有至少min_nr个事件完成或超过timeout指定的时间.
- * 事件执行的结果存储在 struct io_event 中 */
+// 获取已完成的I/O事件,
+// 如果timeout!=nullptr, 那么调用它会阻塞当前线程, 直到有至少min_nr个事件完成或超过timeout指定的时间.
+// 如果timeout==nullptr, 那么该函数就是非阻塞的
+// 事件执行的结果存储在 struct io_event* events 中
 static inline int io_getevents(io_context_t ctx_id, long min_nr, long nr, struct io_event *events, struct timespec *timeout) {
     return syscall(__NR_io_getevents, ctx_id, min_nr, nr, events, timeout);
 }
 
-/**将I/O请求iocb与eventfd关联, 实现事件驱动通知.
- * 当这个请求完成时, 内核会自动向该 eventfd 发送信号
- * 应用程序可以将这个 eventfd 注册到像 epoll 这样的I/O多路复用机制中.
- * 这样，程序的主循环可以在同一个地方同时等待网络事件和I/O完成事件，实现真正的非阻塞和高并发*/
+// 将I/O请求iocb与eventfd关联, 实现事件驱动通知.
+// 当这个请求完成时, 内核会自动向该 eventfd 发送信号
+// 应用程序可以将这个 eventfd 注册到像 epoll 这样的I/O多路复用机制中.
+// 这样，程序的主循环可以在同一个地方同时等待网络事件和I/O完成事件，实现真正的非阻塞和高并发
 static inline void io_set_eventfd(struct iocb *iocb, int eventfd) {
     // 通过位或操作将第0位（最低位）强制设为1.
     // 这种操作是“只设位，不清位”. 如果 flags之前已经设置了其他功能的标志位(比如第1位是是否使用偏移量等), 这个操作不会覆盖它们，确保了各功能标志之间互不干扰
@@ -186,18 +194,28 @@ static inline void io_set_eventfd(struct iocb *iocb, int eventfd) {
     iocb->u.c.resfd = eventfd;
 }
 
-void IOSession::prep_pread(int fd, void *buf, size_t count, long long offset) {
-    iocb *iocb = (struct iocb *)this->iocb_buf;
-    memset(iocb, 0, sizeof(*iocb));
-    iocb->aio_fildes = fd;
-    iocb->aio_lio_opcode = IO_CMD_PREAD;
-    iocb->u.c.buf = buf;
-    iocb->u.c.nbytes = count;
-    iocb->u.c.offset = offset;
+/* -------------------prep_开头的函数本身并不执行任何I/O操作. 它的职责是配置一个“任务说明书”(即struct iocb)-------------------- */
+
+/**配置读取事件
+ * @param fd 目标文件描述符
+ * @param buf 数据缓冲区
+ * @param count 读取字节数
+ * @param offset 文件偏移量, 指定从文件的什么位置开始读取 */
+void IOSession::prep_pread(const int fd, void *buf, const size_t count, const long long offset) {
+    auto iocb = reinterpret_cast<struct iocb *>(this->iocb_buf);
+    memset(iocb, 0, sizeof(*iocb)); // 结构体清零
+    iocb->aio_fildes = fd; // 使这个异步操作与特定的文件关联
+    iocb->aio_lio_opcode = IO_CMD_PREAD; // 异步读操作
+    // buf, count, offset这些参数在异步I/O中有着严格的对齐要求(尤其是配合O_DIRECT模式时),
+    // 需要确保缓冲区地址、读取大小和偏移量通常是磁盘块大小(如4KB)的整数倍, 否则操作会失败
+    iocb->u.c.buf = buf; // 数据目标缓冲区
+    iocb->u.c.nbytes = count; // 要读取的字节数
+    iocb->u.c.offset = offset; // 起始偏移地址
 }
 
-void IOSession::prep_pwrite(int fd, void *buf, size_t count, long long offset) {
-    iocb *iocb = (struct iocb *)this->iocb_buf;
+// 配置写事件
+void IOSession::prep_pwrite(const int fd, void *buf, const size_t count, const long long offset) {
+    auto iocb = reinterpret_cast<struct iocb *>(this->iocb_buf);
     memset(iocb, 0, sizeof(*iocb));
     iocb->aio_fildes = fd;
     iocb->aio_lio_opcode = IO_CMD_PWRITE;
@@ -206,60 +224,180 @@ void IOSession::prep_pwrite(int fd, void *buf, size_t count, long long offset) {
     iocb->u.c.offset = offset;
 }
 
-void IOSession::prep_preadv(int fd, const struct iovec *iov, int iovcnt, long long offset) {
-    iocb *iocb = (struct iocb *)this->iocb_buf;
+/**配置分散读事件. 分散读(vectored I/O)的主要优势在于能够单次系统调用处理多个非连续缓冲区
+ * @param fd 目标文件描述符
+ * @param iov 缓冲区数组. 多个缓冲区之间是不连续的
+ * @param iovcnt 缓冲区数量
+ * @param offset 文件偏移量, 指定从文件的什么位置开始读取 */
+void IOSession::prep_preadv(const int fd, const iovec *iov, const int iovcnt, const long long offset) {
+    auto iocb = reinterpret_cast<struct iocb *>(this->iocb_buf);
 
     memset(iocb, 0, sizeof(*iocb));
     iocb->aio_fildes = fd;
-    iocb->aio_lio_opcode = IO_CMD_PREADV;
-    iocb->u.c.buf = (void *)iov;
+    iocb->aio_lio_opcode = IO_CMD_PREADV; // 异步分散读操作
+    // 表示的是iovec数组的元素个数(即iovcnt), 而不是要读取的总字节数. 实际要读取的总字节数是由所有iovec元素的iov_len之和决定的
+    iocb->u.c.buf = reinterpret_cast<void *>(const_cast<iovec *>(iov));
     iocb->u.c.nbytes = iovcnt;
     iocb->u.c.offset = offset;
 }
 
-void IOSession::prep_pwritev(int fd, const struct iovec *iov, int iovcnt, long long offset) {
-    iocb *iocb = (struct iocb *)this->iocb_buf;
+// 配置分散写事件
+void IOSession::prep_pwritev(const int fd, const iovec *iov, const int iovcnt, const long long offset) {
+    auto iocb = reinterpret_cast<struct iocb *>(this->iocb_buf);
 
     memset(iocb, 0, sizeof(*iocb));
     iocb->aio_fildes = fd;
     iocb->aio_lio_opcode = IO_CMD_PWRITEV;
-    iocb->u.c.buf = (void *)iov;
+    iocb->u.c.buf = reinterpret_cast<void *>(const_cast<iovec *>(iov));
     iocb->u.c.nbytes = iovcnt;
     iocb->u.c.offset = offset;
 }
 
-void IOSession::prep_fsync(int fd) {
-    iocb *iocb = (struct iocb *)this->iocb_buf;
+//
+void IOSession::prep_fsync(const int fd) {
+    auto iocb = reinterpret_cast<struct iocb *>(this->iocb_buf);
 
     memset(iocb, 0, sizeof(*iocb));
     iocb->aio_fildes = fd;
     iocb->aio_lio_opcode = IO_CMD_FSYNC;
 }
 
-void IOSession::prep_fdsync(int fd) {
-    //
+void IOSession::prep_fdsync(const int fd) {
+    auto iocb = reinterpret_cast<struct iocb *>(this->iocb_buf);
+
+    memset(iocb, 0, sizeof(*iocb));
+    iocb->aio_fildes = fd;
+    iocb->aio_lio_opcode = IO_CMD_FDSYNC;
 }
 
-int IOService::init(int maxevents) {
-    return 0;
+/**异步I/O服务初始化
+ * @param maxevents 指定AIO完成事件环形缓冲区的大小
+ * @return 成功返回0, 失败返回-1 */
+int IOService::init(const int maxevents) {
+    if (maxevents < 0) {
+        return -1;
+    }
+    this->io_ctx = nullptr;
+    // 初始化AIO上下文
+    if (io_setup(maxevents, &this->io_ctx) >= 0) {
+        int ret = pthread_mutex_init(&this->mutex, nullptr);
+        if (ret == 0) {
+            // mutex初始化成功
+            INIT_LIST_HEAD(&this->session_list);
+            this->event_fd = -1; // 将事件文件描述符初始化为无效值
+            // this->ref = 0; // 将引用计数初始化为0
+            return 0;
+        }
+        errno = ret;
+        io_destroy(this->io_ctx); // 清理之前已经成功创建的AIO上下文
+    }
+    return -1;
 }
 
+/* 资源回收 */
 void IOService::deinit() {
-    //
+    pthread_mutex_destroy(&this->mutex);
+    io_destroy(this->io_ctx);
 }
 
-void IOService::incref() {
-    //
+inline void IOService::incref() {
+    // GCC内置的原子操作函数: 比使用互斥锁开销更小
+    __sync_add_and_fetch(&this->ref, 1);
 }
 
 void IOService::decref() {
-    //
+    if (__sync_sub_and_fetch(&this->ref, 1) == 0) {
+        // 当返回值等于0时，意味着所有由该IOService管理的I/O会话都已经处理完毕. 执行后续的清理工作
+        int error, state;
+        // 只要会话链表session_list不为空(表明还有已提交但未处理的会话),就尝试从内核的AIO完成队列中获取事件.
+        while (!list_is_empty(&this->session_list)) {
+            io_event event{};
+            // io_getevents调用会非阻塞地(因为超时参数为nullptr)取出一个已完成的事件
+            if (io_getevents(this->io_ctx, 1, 1, &event, nullptr) > 0) {
+                auto *session = static_cast<IOSession *>(event.data); // 取出之前提交会话时存入的用户数据指针
+                list_del(&session->list);
+                session->res = event.res; // 存储操作结果: 非负数表示成功传输的字节数，负数表示错误码
+                if (session->res >= 0) {
+                    state = IOS_STATE_SUCCESS;
+                    error = 0;
+                } else {
+                    state = IOS_STATE_ERROR;
+                    error = -session->res;
+                }
+                session->handle(state, error); // 将操作结果异步地通知给上层应用程序
+            }
+        }
+        this->handle_unbound(); // 资源释放
+    }
 }
 
 int IOService::request(IOSession *session) {
-    //
+    auto *iocb = reinterpret_cast<struct iocb *>(session->iocb_buf);
+    int ret = -1;
+    pthread_mutex_lock(&this->mutex);
+    if (this->event_fd < 0) {
+        errno = ENOENT;
+    }
+    // session->prepare(): 填充 iocb(I/O控制块) 结构体, 如果准备失败, 则返回负值
+    else if (session->prepare() >= 0) {
+        // 设置iocb的标志位(如IOCB_FLAG_RESFD)，并将 this->event_fd 赋值给iocb的resfd字段.
+        // 这样, 当这个I/O操作完成时, 内核会向指定的event_fd写入消息
+        io_set_eventfd(iocb, this->event_fd);
+        // 建立内核I/O事件与用户态会话对象之间的桥梁.
+        // 当I/O完成时, 内核返回的io_event中将包含这个data指针, 使得回调函数能准确地找到对应的IOSession对象并处理结果
+        iocb->data = session;
+        // 将准备好的iocb提交给内核的AIO上下文(io_ctx)
+        if (io_submit(this->io_ctx, 1, &iocb) > 0) {
+            // 将session添加到session_list链表中. 这个链表用于跟踪所有已提交但尚未完成的I/O会话
+            list_add_tail(&session->list, &this->session_list);
+            ret = 0;
+        }
+    }
+    pthread_mutex_unlock(&this->mutex);
+    if (ret < 0) {
+        session->res = -errno;
+    }
+    return 0;
 }
 
 void *IOService::aio_finish(void *context) {
-    //
+    // 获取IOSession对象指针
+    auto *service = static_cast<IOService *>(context);
+    struct io_event event{};
+    // 非阻塞地(因为超时参数为nullptr)取出至少一个已完成的事件.
+    // 如果当前有已完成的事件，它返回1并将事件信息填充到event结构体中
+    if (io_getevents(service->io_ctx, 1, 1, &event, nullptr)) {
+        // 增加IOService实例的引用计数, 确保其操作的IOService实例不会被意外销毁.
+        service->incref();
+        auto *session = static_cast<IOSession *>(event.data);
+        session->res = event.res;
+        return session;
+    }
+    return nullptr;
+}
+
+class TestA {
+public:
+    virtual void test() {}
+    virtual void test2() {}
+    virtual void test3() {}
+
+
+    void Test() {}
+
+    int A = 10;
+    virtual void test4() {}
+    virtual void test5() {}
+    virtual void test6() {}
+    virtual void test7() {}
+    virtual void test8() {}
+    int B = 10;
+};
+
+void test() {
+    TestA test;
+    std::cout << "sizeof(TestA): " << sizeof(test) << std::endl;
+    auto addr_B = reinterpret_cast<long long>(&(test.B));
+    auto addr_T = reinterpret_cast<long long>(&(test));
+    std::cout << "offsetof(TestA, A): " << addr_B - addr_T << std::endl;
 }

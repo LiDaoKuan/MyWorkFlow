@@ -1,6 +1,7 @@
 #include <iostream>
+#include "src/kernel/IOService_linux.h"
 
 int main() {
-    std::cout << "test";
+    test();
     return 0;
 }
