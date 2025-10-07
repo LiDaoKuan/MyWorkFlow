@@ -11,8 +11,7 @@
 typedef struct __mpoller mpoller_t;
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 mpoller_t *mpoller_create(const struct poller_params *params, size_t nthreads);

@@ -15,6 +15,9 @@
 #include <ctime>
 #include "list.h"
 #include "poller.h"
+#include "mpoller.h"
+#include "msgqueue.h"
+#include "thrdpool.h"
 
 // final: 禁止类被继承或者虚函数被重写
 class CommConnection final {
@@ -29,7 +32,6 @@ public:
     /* 执行清理操作 */
     void deinit();
 
-public:
     void get_addr(const sockaddr **addr, socklen_t **addrlen) const {
         *addr = this->addr;
         *addrlen = this->addrlen;
@@ -71,8 +73,7 @@ private:
     int ssl_connect_timeout; //SSL上下文，用于加密连接。包含SSL握手超时
     SSL_CTX *ssl_ctx; // SSL上下文，用于加密连接
 
-private:
-    struct list_head idle_list; // 空闲连接链表。用于实现连接池，管理空闲的持久连接以提升性能。
+    list_head idle_list; // 空闲连接链表。用于实现连接池，管理空闲的持久连接以提升性能。
     pthread_mutex_t mutex; // 互斥锁
     friend class CommServiceTarget;
     friend class Communicator;
@@ -89,9 +90,10 @@ public:
     friend class Communicator;
 };
 
-/* private继承：体现了 "实现继承而非接口继承" 的设计思想。
- 框架内部的核心调度器（如 Communicator）需要操作 poller_message_t 接口，但又不希望用户直接接触到这个底层接口。
- 私有继承恰好实现了这个目的: 它允许 CommMessageIn 复用 poller_message_t 的实现，同时又对外隐藏了基类的所有公共成员 */
+// private继承：体现了 "实现继承而非接口继承" 的设计思想.
+// 框架内部的核心调度器（如 Communicator）需要操作 poller_message_t 接口，但又不希望用户直接接触到这个底层接口。
+// 私有继承恰好实现了这个目的: 它允许 CommMessageIn 复用 poller_message_t 的实现, 同时又对外隐藏了基类的所有公共成员
+
 /**这个类体现了 模板方法模式 和 策略模式 的思想.
  * CommMessageIn固定了消息处理的“骨架”(如何时调用append), 而将具体协议解析的“策略”留给子类实现.
  * 它在WorkFlow这类异步网络框架中，很可能扮演着应用层协议解包器的角色 */
@@ -271,9 +273,9 @@ public:
 };
 
 #ifdef __linux__
-#include "IOService_linux.h"
+# include "IOService_linux.h"
 #else
-#include "IOService_thread.h"
+# include "IOService_thread.h"
 #endif
 
 class CommEventHandler {
@@ -317,17 +319,15 @@ public:
     int increase_handler_thread();
     int decrease_handler_thread();
 
-public:
     void customize_event_handler(CommEventHandler *handler);
 
 private:
-    struct __mpoller *mpoller;
-    struct __msgqueue *msgqueue;
-    struct __thrdpool *thrdpoll;
-    int stop_flag;
+    __mpoller *mpoller{nullptr};
+    __msgqueue *msgqueue{nullptr};
+    __thrdpool *thrdpoll{nullptr};
+    int stop_flag = 0;
 
-private:
-    CommEventHandler *event_handler;
+    CommEventHandler *event_handler{nullptr};
 
 private:
     int create_poller(size_t poller_threads);

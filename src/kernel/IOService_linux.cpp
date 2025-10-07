@@ -253,15 +253,16 @@ void IOSession::prep_pwritev(const int fd, const iovec *iov, const int iovcnt, c
     iocb->u.c.offset = offset;
 }
 
-//
+// 强制数据同步, 强制将内核中所有与该文件相关的已修改数据以及文件的元数据刷新到磁盘, 并且会阻塞调用进程, 直到存储设备报告写入完成
 void IOSession::prep_fsync(const int fd) {
     auto iocb = reinterpret_cast<struct iocb *>(this->iocb_buf);
 
     memset(iocb, 0, sizeof(*iocb));
     iocb->aio_fildes = fd;
-    iocb->aio_lio_opcode = IO_CMD_FSYNC;
+    iocb->aio_lio_opcode = IO_CMD_FSYNC; // 设定操作类型为 IO_CMD_FSYNC, 明确这是一个强制数据同步操作
 }
 
+// 只同步文件数据(不强制同步元数据, 只有当元数据的更新对于后续正确读取数据是必需的时候, 它才会同步该元数据)
 void IOSession::prep_fdsync(const int fd) {
     auto iocb = reinterpret_cast<struct iocb *>(this->iocb_buf);
 
@@ -395,9 +396,12 @@ public:
 };
 
 void test() {
-    TestA test;
-    std::cout << "sizeof(TestA): " << sizeof(test) << std::endl;
-    auto addr_B = reinterpret_cast<long long>(&(test.B));
-    auto addr_T = reinterpret_cast<long long>(&(test));
-    std::cout << "offsetof(TestA, A): " << addr_B - addr_T << std::endl;
+    const int *ch = new int(16161616);
+    void *p = (void *)ch;
+    void **tp = (void **)p;
+    std::cout << (*tp) << std::endl;
+    *tp = nullptr;
+    std::cout << (*tp) << std::endl;
+    std::cout << p << std::endl;
+    delete ch;
 }

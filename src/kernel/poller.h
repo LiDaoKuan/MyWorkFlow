@@ -112,9 +112,6 @@ struct poller_params {
  */
 #ifdef __cplusplus
 extern "C" {
-
-
-
 #endif
 
 poller_t *poller_creat(const struct poller_params *params);
