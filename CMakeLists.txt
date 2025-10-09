@@ -20,7 +20,6 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Android")
 elseif (UNIX)
     set(INCLUDE_KERNEL_HEADERS ${COMMON_KERNEL_HEADERS} src/kernel/IOService_thread.h)
     set(PLATFORM_IO_SOURCE src/kernel/IOService_thread.cpp)
-    message("---------------------------------unix--------------------------------------")
 else ()
     message(FATAL_ERROR "IOService unsupported.")
 endif ()
@@ -30,14 +29,15 @@ set(INCLUDE_HEADERS
 )
 
 add_executable(myWorkFlow main.cpp
+        ${INCLUDE_HEADERS}
+        ${PLATFORM_IO_SOURCE}
         src/kernel/SubTask.cpp
         src/kernel/poller.c
         src/kernel/rbtree.c
         src/kernel/mpoller.c
         src/kernel/msgqueue.c
         src/kernel/thrdpool.c
-        ${PLATFORM_IO_SOURCE}
-        #${INCLUDE_HEADERS}
+        src/kernel/Communicator.cpp
 )
 
 find_package(OpenSSL REQUIRED)

@@ -55,7 +55,7 @@ struct poller_data {
     // 根据 operation的不同，会调用与之对应的特定回调函数
     union {
         /* 当fd可读时，调用此函数创建一个 poller_message_t派生对象，用于开始或继续消息的组装 */
-        poller_message_t * (*creat_message)(void *);
+        poller_message_t * (*create_message)(void *);
         /* 在异步发送数据时，每当有部分数据被成功写入内核缓冲区后调用，可用于更新超时时间 */
         int (*partial_written)(size_t, void *);
         /* 当监听socket有新连接到达时调用，用于接受连接并创建新的通信fd */

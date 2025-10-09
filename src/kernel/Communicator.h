@@ -25,14 +25,15 @@ public:
     virtual ~CommConnection() = default;
 };
 
+// 存储对端的连接信息
 class CommTarget {
 public:
-    int init(const sockaddr *addr, socklen_t len, int connect_timeout, int response_timeout);
+    int init(const sockaddr *addr, socklen_t addrlen, int connect_timeout, int response_timeout);
 
     /* 执行清理操作 */
     void deinit();
 
-    void get_addr(const sockaddr **addr, socklen_t **addrlen) const {
+    void get_addr(const sockaddr **addr, socklen_t *addrlen) const {
         *addr = this->addr;
         *addrlen = this->addrlen;
     }
@@ -51,7 +52,7 @@ protected:
      * 类定义了操作骨架，而将具体步骤的实现在子类中。使得扩展不同协议（HTTP/Redis/MySQL）变得非常容易 */
 private:
     /* 创建原始Socket. 默认使用 socket()系统调用. 派生类可重写以定制Socket选项（如非阻塞模式） */
-    virtual int creat_connect_fd() {
+    virtual int create_connect_fd() {
         return socket(this->addr->sa_family, SOCK_STREAM, 0);
     }
 
@@ -63,17 +64,17 @@ private:
     virtual int init_ssl(SSL *ssl) { return 0; }
 
 public:
-    virtual void release() {};
+    virtual void release() {}
 
 private:
     sockaddr *addr;
-    socklen_t *addrlen;
+    socklen_t addrlen;
     int connect_timeout; // 连接超时时间
     int response_timeout; // 等待响应超时时间
     int ssl_connect_timeout; //SSL上下文，用于加密连接。包含SSL握手超时
     SSL_CTX *ssl_ctx; // SSL上下文，用于加密连接
 
-    list_head idle_list; // 空闲连接链表。用于实现连接池，管理空闲的持久连接以提升性能。
+    list_head idle_list; // 空闲连接链表. 用于实现连接池, 管理空闲的持久连接以提升性能.
     pthread_mutex_t mutex; // 互斥锁
     friend class CommServiceTarget;
     friend class Communicator;
@@ -83,7 +84,8 @@ private:
 
 class CommMessageOut {
 private:
-    virtual void encode(struct iovec vectors[], int max) = 0;
+    // 对数据进行编码, 编码后的数据放入参数数组vectors[]中, 返回编码成功后的数组长度
+    virtual int encode(struct iovec vectors[], int max) = 0;
 
 public:
     virtual ~CommMessageOut() = default;
@@ -127,7 +129,7 @@ public:
 
 #define CS_STATE_SUCCESS    0
 #define CS_STATE_ERROR      1
-#define CS_STATE_STOPED     2
+#define CS_STATE_STOPPED     2
 #define CS_STATE_TOREPLY    3  /* for service session only */
 
 /* 管理单个网络会话生命周期 */
@@ -147,7 +149,7 @@ private:
      * 这些函数返回 -1 表示禁用超时，返回 0 表示使用默认值，返回正数表示自定义超时毫秒数 */
 
     // 控制超时策略, 管理连接生命周期
-    virtual int send_timeout() { return -1; } /* 控制发送数据过程的超时, 防止因网络延迟或对端无响应导致的连接长期挂起 */
+    virtual int send_timeout() { return -1; } /* 控制发送数据过程的超时, 防止因网络延迟或对端无响应导致的连接长期挂起, 默认返回-1, 即: 永不超时 */
     virtual int receive_timeout() { return -1; } /* 控制接收数据过程的超时, 防止因网络延迟或对端无响应导致的连接长期挂起 */
     virtual int keep_alive_timeout() { return 0; } /* 管理连接空闲时间，是实现 HTTP Keep-Alive 或数据库连接池等长连接功能的关键 */
     virtual int first_timeout() { return 0; } /* 控制连接建立或首包发送的超时, 对于快速发现不可达的服务端至关重要 */
@@ -177,7 +179,7 @@ private:
     long long seq; // 序列号, 用于匹配请求和响应, 尤其在多路复用的连接中非常重要
 
     struct timespec begin_time; // 操作的开始时间
-    int timeout; // 操作的超时阀值
+    int timeout; // 操作的超时阀值(毫秒？)
     int passive; // 当设置为 1 时, 表示该会话是由服务端被动接受的连接, 这将影响框架内部对其生命周期管理的策略
 
 public:
@@ -191,12 +193,12 @@ public:
 class CommService {
 public:
     // 服务端地址绑定、参数配置、资源初始化
-    int init(const sockaddr *bind_addr, socklen_t addrlen, int listen_timeout, int response_timeout);
+    int init(const sockaddr *_bind_addr, socklen_t _addrlen, int _listen_timeout, int response_timeout);
     void deinit(); // 释放资源
     int drain(int max); // 优雅关闭，排空现有连接
 
     void get_addr(const sockaddr **addr_, socklen_t *addrlen_) const {
-        *addr_ = this->bing_addr;
+        *addr_ = this->bind_addr;
         *addrlen_ = this->addrlen;
     }
 
@@ -222,7 +224,7 @@ private:
     virtual void handle_unbound() = 0;
 
     // 可重写的底层辅助函数，如创建监听套接字、连接对象和 SSL 初始化
-    virtual int creat_listen_fd() { return socket(this->bing_addr->sa_family, SOCK_STREAM, 0); }
+    virtual int create_listen_fd() { return socket(this->bind_addr->sa_family, SOCK_STREAM, 0); }
     virtual CommConnection *new_connection(int accept_fd) { return new CommConnection; }
     virtual int init_ssl(SSL *ssl) { return 0; }
 
@@ -231,18 +233,18 @@ private:
     void decref();
 
 private:
-    struct sockaddr *bing_addr;
+    sockaddr *bind_addr;
     socklen_t addrlen;
     int listen_timeout; // 控制监听套接字接受新连接的等待时间，影响服务启动的容忍度
     int response_timeout; // 定义服务端发出响应后等待客户端确认或后续操作的最大时间，影响请求完整周期
     int ssl_accept_timeout; // 限制SSL/TLS握手阶段的持续时间，保护服务端资源
     SSL_CTX *ssl_ctx; // 存储SSL库的配置上下文（如证书、私钥、协议版本），是所有SSL连接的基础
 
-    int reliable; // 标志位，用于启用TCP保活机制，以检测和清理失效连接
+    int reliable; // 标志位，用于启用TCP保活机制，以检测和清理失效连接??? or 用于控制可靠关闭和非可靠关闭
     int listen_fd;
     int ref; // 引用计数器，用于跟踪活跃连接数，是实现优雅停机的关键
 
-    struct list_head keep_alive_list; // 管理处于Keep-Alive状态的连接链表，支持连接复用
+    list_head keep_alive_list; // 管理处于Keep-Alive状态的连接链表，支持连接复用
     pthread_mutex_t mutex;
 
 public:
@@ -307,8 +309,8 @@ public:
     int bind(CommService *service);
     void unbind(CommService *service);
 
-    int sleep(CommSession *session);
-    int unsleep(CommSession *session);
+    int sleep(SleepSession *session);
+    int unsleep(SleepSession *session);
 
     int io_bind(IOService *io_service);
     void io_unbind(IOService *io_service);
@@ -324,7 +326,7 @@ public:
 private:
     __mpoller *mpoller{nullptr};
     __msgqueue *msgqueue{nullptr};
-    __thrdpool *thrdpoll{nullptr};
+    __thrdpool *thrdpool{nullptr};
     int stop_flag = 0;
 
     CommEventHandler *event_handler{nullptr};
@@ -334,10 +336,10 @@ private:
     int create_handler_threads(size_t handler_threads);
     void shutdown_service(CommService *service);
     void shutdown_io_service(IOService *io_service);
-    int send_message_sync(iovec vector[], int cnt, CommConnEntry *entry);
-    int send_message_async(iovec vector[], int cnt, CommConnEntry *entry);
+    int send_message_sync(iovec io_vec[], int cnt, CommConnEntry *entry) const;
+    int send_message_async(iovec vectors[], int cnt, CommConnEntry *entry) const;
 
-    int send_message(CommConnEntry *entry);
+    int send_message(CommConnEntry *entry) const;
 
     int request_new_conn(CommSession *session, CommTarget *target);
     int request_idle_conn(CommSession *session, CommTarget *target);
@@ -347,7 +349,7 @@ private:
     int reply_reliable(CommSession *session, CommTarget *target);
     int reply_unreliable(CommSession *session, CommTarget *target);
 
-    int handle_poller_result(poller_result *res);
+    void handle_poller_result(poller_result *res);
 
     void handle_incoming_request(poller_result *res);
     void handle_incoming_reply(poller_result *res);
@@ -363,19 +365,19 @@ private:
 
     void handle_recvfrom_result(poller_result *res);
 
-    void handle_ssl_accept_result(poller_result *res);
+    void handle_ssl_accept_result(poller_result *res) const;
 
-    void handle_sleep_result(poller_result *res);
+    static void handle_sleep_result(poller_result *res);
 
     void handle_aio_result(poller_result *res);
 
     static void handler_thread_routine(void *context);
 
     static int nonblock_connect(CommTarget *target);
-    static int nonblock_listen(CommTarget *target);
+    static int nonblock_listen(CommService *service);
 
     static CommConnEntry *launch_conn(CommSession *session, CommTarget *target);
-    static CommConnEntry *accept_conn(CommSession *session, CommTarget *target);
+    static CommConnEntry *accept_conn(class CommServiceTarget *target, CommService *service);
 
     static int first_timeout(CommSession *session);
     static int next_timeout(CommSession *session);
@@ -393,7 +395,7 @@ private:
     static int partial_written(size_t n, void *context);
 
     static void *accept(const sockaddr *addr, socklen_t addrlen, int sockfd, void *context);
-    static void *recvfrom(const sockaddr *addr, socklen_t addrlen, void *buf, size_t size, void *context);
+    static void *recvfrom(const sockaddr *addr, socklen_t addrlen, const void *buf, size_t size, void *context);
 
     static void callback(poller_result *res, void *context);
 

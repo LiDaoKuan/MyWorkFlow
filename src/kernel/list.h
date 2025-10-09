@@ -41,7 +41,7 @@ static inline void __list_add(struct list_head *entry, struct list_head *prev, s
  * @param entry: 要添加的新条目
  * @param head: 列表头，新条目将添加在此之后
  *
- * 在指定的头节点之后插入一个新条目。这有利于实现栈（后进先出，LIFO）。
+ * 在指定的头节点之后插入一个新条目. 这有利于实现栈（后进先出，LIFO）.
  */
 static inline void list_add(struct list_head *entry, struct list_head *head) {
     __list_add(entry, head, head->next);
@@ -51,7 +51,7 @@ static inline void list_add(struct list_head *entry, struct list_head *head) {
  * @param entry 要添加的条目
  * @param head 列表头，新条目将添加在此之后
  *
- * 在指定的头节点之前插入一个新条目。这有利于实现队列。
+ * 在指定的头节点之前插入一个新条目. 这有利于实现队列.
  */
 static inline void list_add_tail(struct list_head *entry, struct list_head *head) {
     __list_add(entry, head->prev, head);

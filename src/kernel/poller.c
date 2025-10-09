@@ -105,6 +105,7 @@ static inline int __poller_del_fd(int fd, int event, poller_t *poller) {
     return epoll_ctl(poller->pfd, EPOLL_CTL_DEL, fd, NULL);
 }
 
+/* 修改内核时间表中关于文件描述符fd的事件 */
 static inline int __poller_mod_fd(int fd, int old_event, int new_event, void *data, poller_t *poller) {
     struct epoll_event ev = {
         .events = new_event,
@@ -311,6 +312,7 @@ static void __poller_tree_insert(struct __poller_node *node, poller_t *poller) {
     rb_insert_color(&node->rb, &poller->timeo_tree); // 平衡红黑数
 }
 
+/* 从poller的红黑树中删除节点node */
 static inline void __poller_tree_erase(struct __poller_node *node, poller_t *poller) {
     if (&node->rb == poller->tree_first) {
         // 如果node->rb是poller的红黑数的最小超时节点，需要更改poller的最小超时节点为node->rb的后继结点
@@ -367,7 +369,7 @@ static int __poller_append_message(const void *buf, size_t *n, struct __poller_n
             return -1;
         }
         // 通过 create_message回调（例如，创建HTTP请求解析器）创建一个新的消息对象 msg，并同时分配一个用于承载最终结果的 res 对象
-        msg = node->data.creat_message(node->data.context);
+        msg = node->data.create_message(node->data.context);
         if (!msg) {
             // msg空间分配失败，释放res内存后返回-1
             free(res);
@@ -1434,8 +1436,9 @@ int poller_mod(const struct poller_data *data, int timeout, poller_t *poller) {
         if (__poller_mod_fd(data->fd, orig->event, node->event, node, poller) >= 0) {
             // 删除原__poller_node节点
             if (orig->in_rbtree) {
+                // 如果在红黑树中, 删除红黑树中的节点
                 __poller_tree_erase(orig, poller);
-            } else { list_del(&orig->list); }
+            } else { list_del(&orig->list); } // 如果不在红黑树中, 那么就在链表中
 
             orig->error = 0;
             orig->state = PR_ST_MODIFIED;

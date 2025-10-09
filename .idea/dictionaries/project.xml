@@ -16,6 +16,7 @@
       <w>fdsync</w>
       <w>fildes</w>
       <w>getevents</w>
+      <w>getsockname</w>
       <w>getsockopt</w>
       <w>gparent</w>
       <w>iocb</w>
@@ -30,6 +31,7 @@
       <w>nbytes</w>
       <w>newnode</w>
       <w>nleft</w>
+      <w>noclose</w>
       <w>nsec</w>
       <w>nthreads</w>
       <w>padde</w>
@@ -40,6 +42,7 @@
       <w>pwritev</w>
       <w>rbtree</w>
       <w>readv</w>
+      <w>recv</w>
       <w>recvfrom</w>
       <w>reqprio</w>
       <w>resfd</w>
