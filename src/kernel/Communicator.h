@@ -309,7 +309,7 @@ public:
     int bind(CommService *service);
     void unbind(CommService *service);
 
-    int sleep(SleepSession *session) const;
+    int sleep(SleepSession *session) ;
     int unsleep(SleepSession *session);
 
     int io_bind(IOService *io_service);
@@ -319,7 +319,7 @@ public:
     [[nodiscard]] int is_handler_thread() const;
 
     int increase_handler_thread();
-    int decrease_handler_thread() const;
+    int decrease_handler_thread();
 
     void customize_event_handler(CommEventHandler *handler);
 
@@ -394,7 +394,7 @@ private:
 
     static int partial_written(size_t n, void *context);
 
-    static void *accept(const sockaddr *addr, socklen_t addrlen, int sockfd, void *context);
+    static void *create_target(const sockaddr *addr, socklen_t addrlen, int sockfd, void *context);
     static void *recvfrom(const sockaddr *addr, socklen_t addrlen, const void *buf, size_t size, void *context);
 
     static void callback(poller_result *res, void *context);

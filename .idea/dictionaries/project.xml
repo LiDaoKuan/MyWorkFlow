@@ -4,6 +4,8 @@
       <w>abstime</w>
       <w>addrlen</w>
       <w>bufsize</w>
+      <w>commgroup</w>
+      <w>commscheduler</w>
       <w>ctxp</w>
       <w>deinit</w>
       <w>dptr</w>
@@ -55,6 +57,7 @@
       <w>stoped</w>
       <w>thrdpoll</w>
       <w>thrdpool</w>
+      <w>timedwait</w>
       <w>timeo</w>
       <w>timerfd</w>
       <w>toreply</w>

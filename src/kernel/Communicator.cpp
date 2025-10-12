@@ -1430,7 +1430,7 @@ int Communicator::partial_written(size_t n, void *context) {
 }
 
 // 为新连接创建管理上下文CommServiceTarget
-void *Communicator::accept(const sockaddr *addr, const socklen_t addrlen, const int sockfd, void *context) {
+void *Communicator::create_target(const sockaddr *addr, const socklen_t addrlen, const int sockfd, void *context) {
     auto service = static_cast<CommService *>(context);
     auto target = new CommServiceTarget;
 
@@ -1458,7 +1458,7 @@ void *Communicator::recvfrom(const sockaddr *addr, const socklen_t addrlen, cons
     const int sockfd = dup(service->listen_fd);
     if (sockfd >= 0) {
         // 创建一个 CommServiceTarget对象, 该对象代表此次通信的对端目标(客户端), 并初始化目标地址、端口等信息
-        void *result = Communicator::accept(addr, addrlen, sockfd, context);
+        void *result = Communicator::create_target(addr, addrlen, sockfd, context);
         if (result) {
             auto target = static_cast<CommServiceTarget *>(result);
             auto entry = Communicator::accept_conn(target, service);
@@ -1775,7 +1775,7 @@ int Communicator::bind(CommService *service) {
         };
         if (service->reliable) {
             data.operation = PD_OP_LISTEN; // 可靠连接，如TCP
-            data.accept = Communicator::accept; // 设置连接接受回调
+            data.accept = Communicator::create_target; // 设置连接接受回调
         } else {
             data.operation = PD_OP_RECVFROM; // 非可靠连接，如UDP
             data.recvfrom = Communicator::recvfrom; // 设置数据报接收回调
@@ -1979,7 +1979,7 @@ int Communicator::shutdown(CommSession *session) {
 }
 
 // 异步定时器注册. 负责将需要定时等待的会话(SleepSession)优雅地转换为一个由底层多路复用器管理的异步定时事件
-int Communicator::sleep(SleepSession *session) const {
+int Communicator::sleep(SleepSession *session) {
     timespec value{};
     // 让session计算并填充value
     if (session->duration(&value) >= 0) {
@@ -2123,9 +2123,9 @@ int Communicator::increase_handler_thread() {
 }
 
 // 减小线程数量
-int Communicator::decrease_handler_thread() const {
+int Communicator::decrease_handler_thread() {
     constexpr size_t size = sizeof(poller_result) + sizeof(void *);
-    poller_result *res = static_cast<poller_result *>(malloc(size));
+    auto *res = static_cast<poller_result *>(malloc(size));
     if (res) {
         res->data.operation = -1; // -1表示管道读事件, 收到管道读事件的线程会终止
         msgqueue_put_head(res, this->msgqueue);

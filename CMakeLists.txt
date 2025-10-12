@@ -12,6 +12,8 @@ set(COMMON_KERNEL_HEADERS
         src/kernel/rbtree.h
         src/kernel/SubTask.h
         src/kernel/thrdpool.h
+        src/kernel/CommRequest.h
+        src/kernel/CommScheduler.h
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Android")
@@ -38,6 +40,8 @@ add_executable(myWorkFlow main.cpp
         src/kernel/msgqueue.c
         src/kernel/thrdpool.c
         src/kernel/Communicator.cpp
+        src/kernel/CommRequest.cpp
+        src/kernel/CommScheduler.cpp
 )
 
 find_package(OpenSSL REQUIRED)
