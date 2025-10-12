@@ -23,10 +23,8 @@ protected:
     /* prepare() has to call one of the prep_ functions. */
     void prep_pread(int fd, void *buf, size_t count, long long offset);
     void prep_pwrite(int fd, void *buf, size_t count, long long offset);
-    void prep_preadv(int fd, const struct iovec *iov, int iovcnt,
-                     long long offset);
-    void prep_pwritev(int fd, const struct iovec *iov, int iovcnt,
-                      long long offset);
+    void prep_preadv(int fd, const iovec *iov, int iovcnt, long long offset);
+    void prep_pwritev(int fd, const iovec *iov, int iovcnt, long long offset);
     void prep_fsync(int fd);
     void prep_fdsync(int fd);
 
@@ -42,7 +40,7 @@ private:
     long res;
 
 private:
-    struct list_head list;
+    list_head list;
     class IOService *service;
     pthread_t tid;
 
@@ -64,8 +62,8 @@ private:
     virtual void handle_unbound() = 0;
 
 private:
-    virtual int create_pipe_fd(int pipe_fd[2]) {
-        return pipe(pipe_fd);
+    virtual int create_pipe_fd(int _pipe_fd[2]) {
+        return pipe(_pipe_fd);
     }
 
 private:
@@ -81,7 +79,7 @@ private:
     int ref;
 
 private:
-    struct list_head session_list;
+    list_head session_list;
     pthread_mutex_t mutex;
 
 private:
@@ -89,12 +87,10 @@ private:
     static void *aio_finish(void *ptr, void *context);
 
 private:
-    static ssize_t preadv_emul(int fd, const struct iovec *iov, int iovcnt,
-                               off_t offset);
-    static ssize_t pwritev_emul(int fd, const struct iovec *iov, int iovcnt,
-                                off_t offset);
-    ssize_t (*preadv)(int, const struct iovec *, int, off_t);
-    ssize_t (*pwritev)(int, const struct iovec *, int, off_t);
+    static ssize_t preadv_emul(int fd, const iovec *iov, int iovcnt, off_t offset);
+    static ssize_t pwritev_emul(int fd, const iovec *iov, int iovcnt, off_t offset);
+    ssize_t (*preadv)(int, const iovec *, int, off_t);
+    ssize_t (*pwritev)(int, const iovec *, int, off_t);
 
 public:
     virtual ~IOService() = default;

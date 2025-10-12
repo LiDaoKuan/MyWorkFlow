@@ -24,11 +24,13 @@
       <w>iovcnt</w>
       <w>iovec</w>
       <w>linkoff</w>
+      <w>linkoffset</w>
       <w>maxevents</w>
       <w>maxlen</w>
       <w>mpoller</w>
       <w>msgqueue</w>
       <w>nbytes</w>
+      <w>nevents</w>
       <w>newnode</w>
       <w>nleft</w>
       <w>noclose</w>

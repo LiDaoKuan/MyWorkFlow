@@ -51,7 +51,7 @@ protected:
     /* 下面的虚函数是设计核心：
      * 类定义了操作骨架，而将具体步骤的实现在子类中。使得扩展不同协议（HTTP/Redis/MySQL）变得非常容易 */
 private:
-    /* 创建原始Socket. 默认使用 socket()系统调用. 派生类可重写以定制Socket选项（如非阻塞模式） */
+    /* 创建流式Socket. 默认使用socket()系统调用. 派生类可重写以定制Socket选项(如非阻塞模式) */
     virtual int create_connect_fd() {
         return socket(this->addr->sa_family, SOCK_STREAM, 0);
     }
@@ -101,7 +101,7 @@ public:
  * 它在WorkFlow这类异步网络框架中，很可能扮演着应用层协议解包器的角色 */
 class CommMessageIn : private poller_message_t {
 private:
-    /* 消息组装核心, 处理接收到的数据流. 继承自__poller_message. 必须由子类实现. */
+    /* 消息组装核心, 处理接收到的数据流. 继承自__poller_message. 必须由子类实现. 会更改传入的参数size为剩余未处理的数据大小 */
     virtual int append(const void *buf, size_t *size) = 0;
 
 protected:
@@ -167,15 +167,15 @@ protected:
     // 获取会话上下文, 如连接对象、消息对象和序列号
     [[nodiscard]] CommTarget *get_target() const { return this->target; }
     [[nodiscard]] CommConnection *get_connect() const { return this->conn; }
-    [[nodiscard]] CommMessageIn *get_message_in() const { return this->in; }
-    [[nodiscard]] CommMessageOut *get_message_out() const { return out; }
+    [[nodiscard]] CommMessageIn *get_message_in() const { return this->msg_in; }
+    [[nodiscard]] CommMessageOut *get_message_out() const { return msg_out; }
     [[nodiscard]] long long get_seq() const { return this->seq; }
 
 private:
     CommTarget *target;
     CommConnection *conn; // 代表底层的网络连接
-    CommMessageOut *out; // 指向当前会话使用的消息处理器
-    CommMessageIn *in; // 指向当前会话使用的消息处理器
+    CommMessageOut *msg_out; // 指向当前会话使用的消息处理器
+    CommMessageIn *msg_in; // 指向当前会话使用的消息处理器
     long long seq; // 序列号, 用于匹配请求和响应, 尤其在多路复用的连接中非常重要
 
     struct timespec begin_time; // 操作的开始时间
@@ -260,8 +260,8 @@ public:
 /*虽然类名是 SleepSession，但其 handle 方法处理的 state 参数暗示了它可能管理着一个小的状态机*/
 class SleepSession {
 private:
-    // 计算休眠时长, 为任务调度提供时间依据
-    virtual int duration(struct timespec *value) = 0;
+    // 计算休眠时长, 为任务调度提供时间依据(策略模式)
+    virtual int duration(timespec *value) = 0;
     // 处理状态变更, 响应超时、唤醒等异步事件
     virtual void handle(int state, int error) = 0;
 
@@ -309,7 +309,7 @@ public:
     int bind(CommService *service);
     void unbind(CommService *service);
 
-    int sleep(SleepSession *session);
+    int sleep(SleepSession *session) const;
     int unsleep(SleepSession *session);
 
     int io_bind(IOService *io_service);
@@ -319,7 +319,7 @@ public:
     [[nodiscard]] int is_handler_thread() const;
 
     int increase_handler_thread();
-    int decrease_handler_thread();
+    int decrease_handler_thread() const;
 
     void customize_event_handler(CommEventHandler *handler);
 
@@ -329,7 +329,7 @@ private:
     __thrdpool *thrdpool{nullptr};
     int stop_flag = 0;
 
-    CommEventHandler *event_handler{nullptr};
+    CommEventHandler *event_handler{nullptr}; // 用于用户自定义事件处理器
 
 private:
     int create_poller(size_t poller_threads);
@@ -367,7 +367,7 @@ private:
 
     void handle_ssl_accept_result(poller_result *res) const;
 
-    static void handle_sleep_result(poller_result *res);
+    void handle_sleep_result(poller_result *res);
 
     void handle_aio_result(poller_result *res);
 

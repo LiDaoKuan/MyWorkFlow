@@ -14,8 +14,14 @@ struct thrdpool_task {
     void *context;
 };
 
+struct __thrdpool_task_entry {
+    void *link;
+    struct thrdpool_task task;
+};
+
 #ifdef __cplusplus
 extern "C" {
+
 #endif
 
 thrdpool_t *thrdpool_create(size_t nthreads, size_t stacksize);

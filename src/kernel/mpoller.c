@@ -7,7 +7,7 @@
 #include "poller.h"
 #include "mpoller.h"
 
-extern poller_t *__poller_create(void **, const struct poller_params *);
+extern poller_t *__poller_create(void**, const struct poller_params *);
 extern void __poller_destroy(poller_t *poller);
 
 /* 根据传入的参数创建poller_t. 成功返回0, 失败返回-1 */

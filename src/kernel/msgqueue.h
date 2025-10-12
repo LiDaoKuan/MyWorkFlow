@@ -13,7 +13,7 @@ typedef struct __msgqueue msgqueue_t;
 extern "C" {
 #endif
 
-msgqueue_t *msgqueue_create(size_t max_len, int linkoff);
+msgqueue_t *msgqueue_create(size_t max_len, int linkoffset);
 void *msgqueue_get(msgqueue_t *queue);
 void msgqueue_put(void *msg, msgqueue_t *queue);
 void msgqueue_put_head(void *msg, msgqueue_t *queue);

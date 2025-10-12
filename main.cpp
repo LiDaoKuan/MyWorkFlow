@@ -1,4 +1,6 @@
 #include <iostream>
+#include <unistd.h>
+
 #include "src/kernel/IOService_linux.h"
 
 class A {
@@ -17,10 +19,10 @@ public:
 
 
 void Test() {
-    A *_a = new A;
-    B *_b = reinterpret_cast<B *>(_a);
-    std::cout << "b: " << _b->get_a() << std::endl;
-    delete _a;
+    int fd = 0;
+    int copy_fd = dup(fd);
+    std::cout << copy_fd << std::endl;
+    close(copy_fd);
 }
 
 int main() {

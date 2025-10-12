@@ -18,11 +18,6 @@ struct __thrdpool {
     pthread_cond_t *terminate;
 };
 
-struct __thrdpool_task_entry {
-    void *link;
-    struct thrdpool_task task;
-};
-
 static pthread_t __zero_tid;
 
 // 实现线程优雅退出和链式等待机制
@@ -45,10 +40,11 @@ static void __thrdpool_exit_routine(void *_pool) {
     pthread_exit(NULL);
 }
 
+// 单个线程的事件循环
 static void *__thrdpool_routine(void *arg) {
     thrdpool_t *pool = (thrdpool_t *)arg;
     // ReSharper disable once CppJoinDeclarationAndAssignment
-    struct __thrdpool_task_entry *entry;
+    struct __thrdpool_task_entry *task_entry;
     // ReSharper disable once CppJoinDeclarationAndAssignment
     void (*task_routine)(void *);
     // ReSharper disable once CppJoinDeclarationAndAssignment
@@ -56,11 +52,11 @@ static void *__thrdpool_routine(void *arg) {
     pthread_setspecific(pool->key, pool); // 将线程池指针pool与特定的键pool->key关联起来
     while (!pool->terminate) {
         // 获取消息
-        entry = (struct __thrdpool_task_entry *)msgqueue_get(pool->msgqueue);
-        if (!entry) { break; } // entry为空, 说明没获取到消息
-        task_routine = entry->task.routine; // 提取出任务要执行的函数指针
-        task_context = entry->task.context; // 获取任务的上下文数据
-        free(entry); // 调用任务函数前, 先释放entry本身的内存, 防止任务执行过长导致内存延迟释放
+        task_entry = (struct __thrdpool_task_entry *)msgqueue_get(pool->msgqueue);
+        if (!task_entry) { break; } // entry为空, 说明没获取到消息
+        task_routine = task_entry->task.routine; // 提取出任务要执行的函数指针
+        task_context = task_entry->task.context; // 获取任务的上下文数据
+        free(task_entry); // 调用任务函数前, 先释放task_entry本身的内存, 防止任务执行过长导致内存延迟释放
         task_routine(task_context); // 执行任务
         if (pool->nthreads == 0) {
             // pool->nthreads == 0, 说明线程池已被销毁, 并且当前线程是池中最后一个活跃的线程

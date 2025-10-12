@@ -34,19 +34,20 @@ struct __poller_message {
 /* 单次IO操作的上下文容器 */
 struct poller_data {
     // -1 表示管道读事件
-#define PD_OP_TIMER			0
-#define PD_OP_READ			1
-#define PD_OP_WRITE			2
-#define PD_OP_LISTEN		3
-#define PD_OP_CONNECT		4
-#define PD_OP_RECVFROM		5
-#define PD_OP_SSL_READ		PD_OP_READ
-#define PD_OP_SSL_WRITE		PD_OP_WRITE
-#define PD_OP_SSL_ACCEPT	6
-#define PD_OP_SSL_CONNECT	7
-#define PD_OP_SSL_SHUTDOWN	8
-#define PD_OP_EVENT			9
-#define PD_OP_NOTIFY		10
+
+#define PD_OP_TIMER			0           // 定时器事件. 与时间相关的异步操作，并非直接关联文件描述符（fd）的I/O
+#define PD_OP_READ			1           // 读事件. 监听文件描述符（fd）是否可读，即是否有数据到来
+#define PD_OP_WRITE			2           // 写事件. 监听文件描述符（fd）是否可写，即是否可以发送数据
+#define PD_OP_LISTEN		3           // 监听事件. 专用于服务端的监听套接字，等待接受新的客户端连接
+#define PD_OP_CONNECT		4           // 连接事件. 用于客户端的异步连接操作，等待与服务器的TCP连接建立
+#define PD_OP_RECVFROM		5           // 接收数据报事件. 用于无连接的协议(如UDP), 等待接收数据报及其源地址
+#define PD_OP_SSL_READ		PD_OP_READ  // SSL读事件. 等价于PD_OP_READ, 但在SSL加密连接上下文中的读操作
+#define PD_OP_SSL_WRITE		PD_OP_WRITE // SSL写事件. 等价于PD_OP_WRITE, 但在SSL加密连接上下文中的写操作
+#define PD_OP_SSL_ACCEPT	6           // SSL接受事件. 服务端SSL握手接受阶段的操作
+#define PD_OP_SSL_CONNECT	7           // SSL连接事件. 客户端SSL握手连接阶段的操作
+#define PD_OP_SSL_SHUTDOWN	8           // SSL关闭事件. 安全地关闭SSL加密连接
+#define PD_OP_EVENT			9           // 通用事件. 可用于扩展或其他类型的异步事件通知
+#define PD_OP_NOTIFY		10          // 通知事件. 用于内部线程间或组件间的通知机制
     short operation; // 操作类型标识符. 指定当前要执行何种I/O操作（如读、写、监听、连接等），是事件分发的唯一依据.
     unsigned short iovcnt; // 分散/聚集 I/O 向量计数. 用于写操作，指定下文中 struct iovec 数组的元素个数，支持高性能的数据批量发送.
     int fd;
@@ -112,6 +113,9 @@ struct poller_params {
  */
 #ifdef __cplusplus
 extern "C" {
+
+
+
 #endif
 
 poller_t *poller_creat(const struct poller_params *params);

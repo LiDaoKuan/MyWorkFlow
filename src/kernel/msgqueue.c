@@ -86,7 +86,7 @@ void msgqueue_put_head(void *msg, msgqueue_t *queue) {
 /**交换生产者和消费者队列, 巧妙地减少了锁竞争,
  *
  * 该函数只能在消费者消息队列为空时调用 */
-static size_t __msgqueue_swap(msgqueue_t *queue) {
+static size_t msgqueue_swap(msgqueue_t *queue) {
     void **get_head = queue->get_head; // 获取消费者消息队列头
 
     pthread_mutex_lock(&queue->put_mutex);
@@ -122,7 +122,7 @@ void *msgqueue_get(msgqueue_t *queue) {
     pthread_mutex_lock(&queue->get_mutex);
     // 先检查消费者消息队列是否为空
     // 如果为空, 则交换生产者消息队列
-    if (*queue->get_head || __msgqueue_swap(queue) > 0) {
+    if (*queue->get_head || msgqueue_swap(queue) > 0) {
         msg = (char *)*queue->get_head - queue->linkoff; // 获取消息
         *queue->get_head = *(void **)*queue->get_head; // 更新队列头
     } else {
@@ -135,7 +135,7 @@ void *msgqueue_get(msgqueue_t *queue) {
 }
 
 /* 创建消息队列 */
-msgqueue_t *msgqueue_create(const size_t max_len, const int linkoff) {
+msgqueue_t *msgqueue_create(const size_t max_len, const int linkoffset) {
     msgqueue_t *queue = (msgqueue_t *)malloc(sizeof(msgqueue_t));
 
     if (!queue) { return nullptr; }
@@ -149,7 +149,7 @@ msgqueue_t *msgqueue_create(const size_t max_len, const int linkoff) {
                 ret = pthread_cond_init(&queue->put_cond, nullptr); // 初始化生产者条件变量
                 if (ret == 0) {
                     queue->msg_max = max_len;
-                    queue->linkoff = linkoff;
+                    queue->linkoff = linkoffset;
                     queue->head1 = NULL;
                     queue->head2 = NULL;
                     queue->get_head = &queue->head1;

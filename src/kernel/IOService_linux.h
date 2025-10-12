@@ -80,7 +80,7 @@ private:
     int event_fd{-1}; // 事件通知文件描述符. 信号量或通信管道, 用于线程间事件通知
     int ref{0}; // 引用计数器. 统计活跃会话, 实现优雅停机
     list_head session_list{}; // 管理所有关联的IOSession对象, 每个IOSession对象都代表一个已经提交但未处理完成的绘会话
-    pthread_mutex_t mutex{};
+    pthread_mutex_t mutex;
 
 public:
     virtual ~IOService() = default;

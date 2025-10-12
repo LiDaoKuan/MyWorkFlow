@@ -159,7 +159,7 @@ static inline int __poller_set_timerfd(int timerfd, const struct timespec *absti
 typedef struct epoll_event __poller_event_t;
 
 /* 阻塞式epoll */
-static inline int __poller_wait(__poller_event_t *events, int maxevents, poller_t *poller) {
+static inline int __poller_wait(__poller_event_t *events, int maxevents, const poller_t *poller) {
     /* timeout参数：
      *  - -1: 阻塞模式
      *  - 0: 非阻塞模式，立即返回
@@ -1160,7 +1160,7 @@ poller_t *__poller_create(void **nodes_buf, const struct poller_params *params) 
 }
 
 /* 创建poller */
-poller_t *poller_create(const struct poller_params *params) {
+poller_t *poller_create__(const struct poller_params *params) {
     void **nodes_buf = (void **)calloc(params->max_open_file, sizeof(void *));
     if (nodes_buf) {
         poller_t *poller = __poller_create(nodes_buf, params);
@@ -1323,7 +1323,7 @@ static struct __poller_node *__poller_new_node(const struct poller_data *data, i
         return NULL;
     }
 
-    node->data = *data; // 复制操作数据
+    node->data = *data; // 复制操作数据（*data是从其他函数传入的栈数据，当外部函数退出后，*data也会释放，只能赋值一份）
     node->event = event; // 设置epoll事件类型
     node->in_rbtree = 0; // 初始不在红黑树中
     node->removed = 0; // 标记未被移除
@@ -1532,7 +1532,7 @@ int poller_add_timer(const struct timespec *value, void *context, void **timer, 
         node->data.operation = PD_OP_TIMER; // 标记为定时器操作
         node->data.fd = -1; // 定时器不关联具体文件描述符
         node->data.context = context; // 保存用户上下文
-        node->in_rbtree = 0; // 初始化不再红黑树中
+        node->in_rbtree = 0; // 初始化不在红黑树中
         node->removed = 0;
         node->res = NULL;
 
