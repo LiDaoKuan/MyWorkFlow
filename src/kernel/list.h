@@ -2,6 +2,16 @@
 // Created by ldk on 9/28/25.
 //
 
+/*
+ * Circular doubly linked list implementation.
+ *
+ * Some of the internal functions ("__xxx") are useful when
+ * manipulating whole lists rather than single entries, as
+ * sometimes we already know the next/prev entries and we can
+ * generate better code by using them directly rather than
+ * using the generic single-entry routines.
+ */
+
 #ifndef _LINUX_LIST_H
 #define _LINUX_LIST_H
 

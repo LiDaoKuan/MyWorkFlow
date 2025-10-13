@@ -1,7 +1,7 @@
 #include <iostream>
 #include <unistd.h>
 
-#include "src/kernel/IOService_linux.h"
+#include "src/kernel/CommRequest.h"
 
 class A {
 public:
@@ -19,14 +19,14 @@ public:
 
 
 void Test() {
-    int fd = 0;
-    int copy_fd = dup(fd);
-    std::cout << copy_fd << std::endl;
-    close(copy_fd);
+    pthread_mutex_t mutex;
+    pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutex);
+    std::cout << "test" << std::endl;
+    pthread_mutex_unlock(&mutex);
 }
 
 int main() {
-    //test();
     Test();
     return 0;
 }

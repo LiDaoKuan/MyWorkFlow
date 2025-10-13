@@ -2,14 +2,33 @@
 // Created by ldk on 9/28/25.
 //
 
+/*
+  Copyright (c) 2019 Sogou, Inc.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  Author: Xie Han (xiehan@sogou-inc.com)
+*/
+
 #ifndef MYWORKFLOW_SUBTASK_H
 #define MYWORKFLOW_SUBTASK_H
 
 #include <cstddef>
 
+// 任务流接口
 class SubTask {
 public:
-    // 任务启动接口。派生类必须实现，包含任务的主要执行逻辑。
+    // 任务启动接口. 派生类必须实现，包含任务的主要执行逻辑。
     // 推测该方法应该是非阻塞的
     virtual void dispatch() = 0;
 

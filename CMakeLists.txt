@@ -11,9 +11,12 @@ set(COMMON_KERNEL_HEADERS
         src/kernel/msgqueue.h
         src/kernel/rbtree.h
         src/kernel/SubTask.h
-        src/kernel/thrdpool.h
+        src/kernel/threadpool.h
         src/kernel/CommRequest.h
         src/kernel/CommScheduler.h
+        src/kernel/Executor.h
+        src/kernel/IORequest.h
+        src/kernel/ExecRequest.h
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Android")
@@ -28,6 +31,7 @@ endif ()
 
 set(INCLUDE_HEADERS
         ${INCLUDE_KERNEL_HEADERS}
+        src/kernel/SleepRequest.h
 )
 
 add_executable(myWorkFlow main.cpp
@@ -38,10 +42,11 @@ add_executable(myWorkFlow main.cpp
         src/kernel/rbtree.c
         src/kernel/mpoller.c
         src/kernel/msgqueue.c
-        src/kernel/thrdpool.c
+        src/kernel/threadpool.c
         src/kernel/Communicator.cpp
         src/kernel/CommRequest.cpp
         src/kernel/CommScheduler.cpp
+        src/kernel/Executor.cpp
 )
 
 find_package(OpenSSL REQUIRED)

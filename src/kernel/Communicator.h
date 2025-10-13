@@ -2,6 +2,24 @@
 // Created by ldk on 9/28/25.
 //
 
+/*
+  Copyright (c) 2019 Sogou, Inc.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  Author: Xie Han (xiehan@sogou-inc.com)
+*/
+
 #ifndef MYWORKFLOW_COMMUNICATOR_H
 #define MYWORKFLOW_COMMUNICATOR_H
 
@@ -17,7 +35,7 @@
 #include "poller.h"
 #include "mpoller.h"
 #include "msgqueue.h"
-#include "thrdpool.h"
+#include "threadpool.h"
 
 // final: 禁止类被继承或者虚函数被重写
 class CommConnection final {
@@ -326,7 +344,7 @@ public:
 private:
     __mpoller *mpoller{nullptr};
     __msgqueue *msgqueue{nullptr};
-    __thrdpool *thrdpool{nullptr};
+    threadpool *thrdpool{nullptr};
     int stop_flag = 0;
 
     CommEventHandler *event_handler{nullptr}; // 用于用户自定义事件处理器

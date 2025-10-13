@@ -2,13 +2,31 @@
 // Created by ldk on 10/7/25.
 //
 
+/*
+  Copyright (c) 2019 Sogou, Inc.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  Author: Xie Han (xiehan@sogou-inc.com)
+*/
+
 #include <errno.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include "msgqueue.h"
-#include "thrdpool.h"
+#include "threadpool.h"
 
-struct __thrdpool {
+struct threadpool {
     msgqueue_t *msgqueue;
     size_t nthreads;
     size_t stacksize; // 线程的调用栈的大小

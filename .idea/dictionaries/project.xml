@@ -5,6 +5,7 @@
       <w>addrlen</w>
       <w>bufsize</w>
       <w>commgroup</w>
+      <w>commrequest</w>
       <w>commscheduler</w>
       <w>ctxp</w>
       <w>deinit</w>
@@ -15,6 +16,7 @@
       <w>epolloneshot</w>
       <w>epollout</w>
       <w>eventfd</w>
+      <w>execrequest</w>
       <w>fdsync</w>
       <w>fildes</w>
       <w>getevents</w>
@@ -22,6 +24,7 @@
       <w>getsockopt</w>
       <w>gparent</w>
       <w>iocb</w>
+      <w>iorequest</w>
       <w>ioservice</w>
       <w>iovcnt</w>
       <w>iovec</w>
@@ -51,6 +54,7 @@
       <w>reqprio</w>
       <w>resfd</w>
       <w>saddr</w>
+      <w>sleeprequest</w>
       <w>sockaddr</w>
       <w>sockfd</w>
       <w>stacksize</w>
