@@ -141,7 +141,7 @@ private:
     struct CommConnEntry *entry;
 
 public:
-    virtual ~CommMessageIn();
+    virtual ~CommMessageIn() = default;
     friend class Communicator;
 };
 

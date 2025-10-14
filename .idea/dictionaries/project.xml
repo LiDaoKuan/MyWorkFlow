@@ -23,6 +23,7 @@
       <w>getsockname</w>
       <w>getsockopt</w>
       <w>gparent</w>
+      <w>httpmessage</w>
       <w>iocb</w>
       <w>iorequest</w>
       <w>ioservice</w>
@@ -41,10 +42,12 @@
       <w>noclose</w>
       <w>nsec</w>
       <w>nthreads</w>
+      <w>packagewrapper</w>
       <w>padde</w>
       <w>pipefd</w>
       <w>pollfd</w>
       <w>preadv</w>
+      <w>protocolmessage</w>
       <w>pwrite</w>
       <w>pwritev</w>
       <w>rbtree</w>
@@ -59,6 +62,8 @@
       <w>sockfd</w>
       <w>stacksize</w>
       <w>stoped</w>
+      <w>strncasecmp</w>
+      <w>strndup</w>
       <w>thrdpoll</w>
       <w>thrdpool</w>
       <w>timedwait</w>

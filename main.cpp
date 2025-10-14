@@ -3,30 +3,51 @@
 
 #include "src/kernel/CommRequest.h"
 
-class A {
-public:
-    int a = 12;
-};
+namespace TEST1 {
+    class Father {
+    public:
+        virtual ~Father() = default;
+        int a = 12;
 
-class B : private A {
-    int b = 0;
+        virtual void func() {
+            this->func1();
+            this->func2();
+        }
 
-public:
-    [[nodiscard]] int get_a() const {
-        return a;
+        virtual void func1() {
+            std::cout << "Father::func1()" << std::endl;
+        }
+
+        virtual void func2() {
+            std::cout << "Father::func2()" << std::endl;
+        }
+    };
+
+    class Child : public Father {
+        int b = 0;
+
+    public:
+        void func() override {
+            this->func1();
+            this->func2();
+        }
+
+        void func2() override {
+            std::cout << "Child::func2()" << std::endl;
+        }
+
+        ~Child() override = default;
+    };
+
+
+    void Test() {
+        Father *b = new Child();
+        b->func();
+        delete b;
     }
-};
-
-
-void Test() {
-    pthread_mutex_t mutex;
-    pthread_mutex_lock(&mutex);
-    pthread_mutex_lock(&mutex);
-    std::cout << "test" << std::endl;
-    pthread_mutex_unlock(&mutex);
 }
 
 int main() {
-    Test();
+    TEST1::Test();
     return 0;
 }

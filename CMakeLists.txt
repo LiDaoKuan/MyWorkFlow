@@ -17,6 +17,7 @@ set(COMMON_KERNEL_HEADERS
         src/kernel/Executor.h
         src/kernel/IORequest.h
         src/kernel/ExecRequest.h
+        src/kernel/SleepRequest.h
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Android")
@@ -31,8 +32,16 @@ endif ()
 
 set(INCLUDE_HEADERS
         ${INCLUDE_KERNEL_HEADERS}
-        src/kernel/SleepRequest.h
+        src/protocol/ProtocolMessage.h
+        src/protocol/PackageWrapper.h
+        src/protocol/HttpMessage.cpp
+        src/protocol/HttpMessage.h
+        src/protocol/http_parser.h
+        src/protocol/http_parser.c
 )
+
+include_directories(${CMAKE_SOURCE_DIR}/src/kernel)
+include_directories(${CMAKE_SOURCE_DIR}/src/protocol)
 
 add_executable(myWorkFlow main.cpp
         ${INCLUDE_HEADERS}
@@ -47,6 +56,8 @@ add_executable(myWorkFlow main.cpp
         src/kernel/CommRequest.cpp
         src/kernel/CommScheduler.cpp
         src/kernel/Executor.cpp
+
+        src/protocol/PackageWrapper.cpp
 )
 
 find_package(OpenSSL REQUIRED)
