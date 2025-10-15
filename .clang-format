@@ -100,8 +100,11 @@ BreakBeforeBraces: Custom
 # 在三元运算符前换行
 BreakBeforeTernaryOperators: false
 
+# 在构造函数的初始化列表的逗号前换行
+BreakConstructorInitializersBeforeComma: false
+
 # 在构造函数的初始化列表的冒号后换行
-BreakConstructorInitializers: BeforeColon
+BreakConstructorInitializers: None
 
 #BreakInheritanceList: AfterColon
 

@@ -34,10 +34,8 @@ set(INCLUDE_HEADERS
         ${INCLUDE_KERNEL_HEADERS}
         src/protocol/ProtocolMessage.h
         src/protocol/PackageWrapper.h
-        src/protocol/HttpMessage.cpp
         src/protocol/HttpMessage.h
         src/protocol/http_parser.h
-        src/protocol/http_parser.c
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/src/kernel)
@@ -56,8 +54,9 @@ add_executable(myWorkFlow main.cpp
         src/kernel/CommRequest.cpp
         src/kernel/CommScheduler.cpp
         src/kernel/Executor.cpp
-
+        src/protocol/http_parser.c
         src/protocol/PackageWrapper.cpp
+        src/protocol/HttpMessage.cpp
 )
 
 find_package(OpenSSL REQUIRED)

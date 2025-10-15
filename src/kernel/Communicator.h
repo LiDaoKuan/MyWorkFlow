@@ -103,7 +103,7 @@ private:
 class CommMessageOut {
 private:
     // 对数据进行编码, 编码后的数据放入参数数组vectors[]中, 返回编码成功后的数组长度
-    virtual int encode(struct iovec vectors[], int max) = 0;
+    virtual int encode(iovec io_vecs[], int max) = 0;
 
 public:
     virtual ~CommMessageOut() = default;

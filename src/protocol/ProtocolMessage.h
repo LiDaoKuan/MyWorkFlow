@@ -108,7 +108,7 @@ namespace protocol {
     class ProtocolWrapper : public ProtocolMessage {
     protected:
         // 委托调用: 直接调用 message->encode(...)
-        int encode(iovec vectors[], int max) override { return this->message->encode(vectors, max); }
+        int encode(iovec io_vecs[], int max) override { return this->message->encode(io_vecs, max); }
         // 委托调用: 直接调用 message->append(...)
         int append(const void *buf, size_t *size) override { return this->message->append(buf, size); }
         // 委托调用: 直接调用 message->inner()

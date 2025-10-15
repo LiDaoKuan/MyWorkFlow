@@ -47,7 +47,19 @@ namespace TEST1 {
     }
 }
 
+namespace TEST2 {
+    void Test() {
+        const char *str = " 2030300 This is test";
+        char *ptr;
+        unsigned long ret;
+
+        ret = strtoul(str, &ptr, 16);
+        printf("数字（无符号长整数）是 %lu\n", ret);
+        printf("字符串部分是 |%s|", ptr);
+    }
+}
+
 int main() {
-    TEST1::Test();
+    TEST2::Test();
     return 0;
 }

@@ -50,7 +50,7 @@ extern "C" {
 void http_parser_init(int is_resp, http_parser_t *parser);
 int http_parser_append_message(const void *buf, size_t *n, http_parser_t *parser);
 int http_parser_get_body(const void **body, size_t *size, const http_parser_t *parser);
-int http_parser_header_complete(const http_parser_t *parser);
+int is_http_parser_header_complete(const http_parser_t *parser);
 int http_parser_set_method(const char *method, http_parser_t *parser);
 int http_parser_set_uri(const char *uri, http_parser_t *parser);
 int http_parser_set_version(const char *version, http_parser_t *parser);
