@@ -215,6 +215,7 @@ namespace protocol {
         size_t output_body_size; // 记录链表中所存数据的总长度（即: 当前消息体的总长度）, 用于生成 Content-Length头部
     };
 
+    // 处理 HTTP 请求报文
     class HttpRequest : public HttpMessage {
     public:
         HttpRequest() : HttpMessage(false) {}
@@ -272,6 +273,7 @@ namespace protocol {
         int handle_expect_continue();
     };
 
+    // 处理 HTTP 响应报文
     class HttpResponse : public HttpMessage {
     public:
         HttpResponse() : HttpMessage(true) {}
@@ -329,6 +331,7 @@ namespace protocol {
 
     public:
         /* Tell the parser, it is a HEAD response. For implementations. */
+        // 告知底层解析器此响应没有消息体(如对HEAD请求的响应), 将传输长度transfer_length设为0
         void parse_zero_body() {
             this->parser->transfer_length = 0;
         }
@@ -337,6 +340,7 @@ namespace protocol {
         int append(const void *buf, size_t *size) override;
     };
 
+    // 处理 HTTP 分块传输编码
     class HttpMessageChunk : public ProtocolMessage {
     public:
         HttpMessageChunk() {
@@ -363,10 +367,10 @@ namespace protocol {
         int append_chunk_line(const void *buf, size_t size);
 
     private:
-        char chunk_line[32]{};
-        void *chunk_data;
-        size_t chunk_size{0};
-        size_t nreceived;
+        char chunk_line[32]{}; // 块大小行缓冲区: 用于临时存储每个数据块开头的长度信息(十六进制字符串)
+        void *chunk_data; // 块数据指针: 指向当前正在处理的数据块内容
+        size_t chunk_size{0}; // 当前块大小: 记录当前数据块的实际长度(不包括块头尾的\r\n)
+        size_t nreceived; // 已经成功接收并拷贝到chunk_data的字节数
     };
 }
 #endif //MYWORKFLOW_HTTPMESSAGE_H

@@ -95,7 +95,7 @@ namespace protocol {
         ProtocolMessage *inner() override { return this; }
 
     protected:
-        size_t size_limit;
+        size_t size_limit; // 最大消息大小限制
 
     private:
         Attachment *attachment;

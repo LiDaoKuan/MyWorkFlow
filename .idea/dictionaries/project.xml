@@ -33,6 +33,7 @@
       <w>linkoffset</w>
       <w>maxevents</w>
       <w>maxlen</w>
+      <w>memcpy</w>
       <w>mpoller</w>
       <w>msgqueue</w>
       <w>nbytes</w>

@@ -13,10 +13,10 @@
 typedef struct __http_parser {
     int header_state; // 头部解析状态机, 记录解析头部字段名或值的当前阶段
     int chunk_state; // 分块传输编码解析状态机, 用于解析Transfer-Encoding: chunked的复杂格式
-    size_t header_offset; // 在当前头部字段(名或值)中已解析的字节偏移量
+    size_t header_offset; // 已经解析的头部长度. 在当前头部字段(名或值)中已解析的字节偏移量
     size_t chunk_offset; // 在当前分块数据中已解析的字节偏移量
     size_t content_length; // 从 Content-Length头部获取的消息体确切长度(字节数)
-    size_t transfer_length; // 实际传输的数据总长度, 对于分块传输, 此值会动态计算并增长
+    size_t transfer_length; // 消息体预期长度(or 实际传输的数据总长度???), 对于分块传输, 此值会动态计算并增长
     char *version; // 指向解析出的HTTP版本字段的指针. 如 "HTTP/1.1"
     char *method; // 指向解析出的HTTP方法字段的指针. 如 "GET", "POST"
     char *uri; // 指向解析出的请求 URI 的指针
@@ -45,6 +45,7 @@ typedef struct __http_header_cursor {
 
 #ifdef __cplusplus
 extern "C" {
+
 #endif
 
 void http_parser_init(int is_resp, http_parser_t *parser);

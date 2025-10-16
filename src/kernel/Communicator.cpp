@@ -232,7 +232,7 @@ int CommMessageIn::feedback(const void *buf, const size_t size) {
         if (comm_conn_entry->service) {
             // 存在service对象: 表明当前可能是服务端在主动向客户端发送反馈. 需要先获取目标的地址
             comm_conn_entry->target->get_addr(&addr, &addrlen);
-            // sendto通常用于无连接的套接字(如 UDP), 为什么此处会使用sendto呢？
+            // sendto通常用于无连接的套接字(如 UDP), 为什么此处会使用sendto呢？？？
             return sendto(comm_conn_entry->sockfd, buf, size, 0, addr, addrlen);
         }
         // 没有service对象, 说明当前是客户端环境, 直接使用write发送数据
