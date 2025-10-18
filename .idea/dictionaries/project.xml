@@ -4,6 +4,7 @@
       <w>abstime</w>
       <w>addrlen</w>
       <w>bufsize</w>
+      <w>caim</w>
       <w>commgroup</w>
       <w>commrequest</w>
       <w>commscheduler</w>
@@ -41,6 +42,7 @@
       <w>newnode</w>
       <w>nleft</w>
       <w>noclose</w>
+      <w>noreply</w>
       <w>nreceived</w>
       <w>nsec</w>
       <w>nthreads</w>
@@ -72,6 +74,9 @@
       <w>timeo</w>
       <w>timerfd</w>
       <w>toreply</w>
+      <w>uriparser</w>
+      <w>wfconnection</w>
+      <w>wftask</w>
     </words>
   </dictionary>
 </component>

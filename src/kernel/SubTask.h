@@ -80,7 +80,7 @@ protected:
     // 子任务数组指针: 指向一个由子任务指针构成的数组，是并行执行的实体
     SubTask **subtasks;
     // 子任务数量: 明确本次并行操作需要管理的子任务总数
-    size_t subtask_nr;
+    size_t subtasks_nr;
 
 private:
     /**剩余任务计数器: 用于同步. 追踪尚未完成的子任务数量
@@ -94,7 +94,7 @@ public:
     ParallelTask(SubTask **subtasks_, size_t n)
         : SubTask() {
         this->subtasks = subtasks_;
-        this->subtask_nr = n;
+        this->subtasks_nr = n;
         this->nleft = n;
     }
 

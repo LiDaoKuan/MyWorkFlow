@@ -53,11 +53,11 @@ void SubTask::subtask_done() {
 
 void ParallelTask::dispatch() {
     // 计算subtasks数据右边界
-    SubTask **end = this->subtasks + subtask_nr;
+    SubTask **end = this->subtasks + subtasks_nr;
     // 遍历subtasks用的指针
     SubTask **p = this->subtasks;
 
-    this->nleft = this->subtask_nr; // 确保开始之前nleft==subtask_nr
+    this->nleft = this->subtasks_nr; // 确保开始之前nleft==subtask_nr
     // 只比较一次nleft，然后用循环将子任务全部处理完
     if (this->nleft != 0) {
         do {

@@ -36,6 +36,13 @@ set(INCLUDE_HEADERS
         src/protocol/PackageWrapper.h
         src/protocol/HttpMessage.h
         src/protocol/http_parser.h
+        src/protocol/HttpUtil.h
+        src/util/URIParser.h
+        src/util/StringUtil.h
+        src/factory/Workflow.h
+        src/factory/WFConnection.h
+        src/factory/WFTask.inl
+        src/factory/WFTask.h
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/src/kernel)
@@ -57,6 +64,10 @@ add_executable(myWorkFlow main.cpp
         src/protocol/http_parser.c
         src/protocol/PackageWrapper.cpp
         src/protocol/HttpMessage.cpp
+        src/protocol/HttpUtil.cpp
+        src/util/URIParser.cpp
+        src/util/StringUtil.cpp
+        src/factory/Workflow.cpp
 )
 
 find_package(OpenSSL REQUIRED)

@@ -24,9 +24,13 @@ namespace TEST1 {
     };
 
     class Child : public Father {
-        int b = 0;
-
     public:
+        int b{0};
+
+        Child() {
+            b = 10;
+        }
+
         void func() override {
             this->func1();
             this->func2();
@@ -61,7 +65,25 @@ namespace TEST2 {
     }
 }
 
+namespace TEST3 {
+    class myClass {
+    protected:
+        ~myClass() {
+            delete this;
+            std::cout << "~myClass() called" << std::endl;
+        }
+    };
+
+    class myClass2 {
+        ~myClass2() { std::cout << "~myClass2() called" << std::endl; }
+    };
+
+    void Test() {
+        myClass *m1 = new myClass();
+    }
+}
+
 int main() {
-    TEST2::Test();
+    TEST3::Test();
     return 0;
 }

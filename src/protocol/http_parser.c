@@ -2,6 +2,24 @@
 // Created by ldk on 10/14/25.
 //
 
+/*
+  Copyright (c) 2019 Sogou, Inc.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  Author: Xie Han (xiehan@sogou-inc.com)
+*/
+
 #include "http_parser.h"
 
 #include <stdlib.h>
@@ -718,6 +736,7 @@ int http_header_cursor_find(const void *name, size_t name_len, const void **valu
                             size_t *value_len, http_header_cursor_t *cursor) {
     struct __header_line *line;
 
+    // 检查是否已经遍历到链表的末尾(即下一个节点是否指向链表头)
     while (cursor->next->next != cursor->head) {
         cursor->next = cursor->next->next;
         line = list_entry(cursor->next, struct __header_line, list);

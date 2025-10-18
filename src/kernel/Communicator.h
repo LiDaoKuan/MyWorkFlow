@@ -38,7 +38,7 @@
 #include "threadpool.h"
 
 // final: 禁止类被继承或者虚函数被重写
-class CommConnection final {
+class CommConnection {
 public:
     virtual ~CommConnection() = default;
 };
@@ -327,7 +327,7 @@ public:
     int bind(CommService *service);
     void unbind(CommService *service);
 
-    int sleep(SleepSession *session) ;
+    int sleep(SleepSession *session);
     int unsleep(SleepSession *session);
 
     int io_bind(IOService *io_service);
