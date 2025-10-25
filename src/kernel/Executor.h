@@ -25,6 +25,7 @@
 
 #include <cstddef>
 #include "list.h"
+#include "threadpool.h"
 
 // 会话队列管理, 只允许友元类Executor操作, 其他类无法正常使用
 class ExecQueue {

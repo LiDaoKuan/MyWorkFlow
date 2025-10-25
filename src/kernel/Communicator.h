@@ -37,7 +37,6 @@
 #include "msgqueue.h"
 #include "threadpool.h"
 
-// final: 禁止类被继承或者虚函数被重写
 class CommConnection {
 public:
     virtual ~CommConnection() = default;

@@ -110,6 +110,7 @@ public:
         this->last = _last;
     }
 
+    // 让 SeriesWork 放弃对其 last 任务的所有权
     void unset_last_task() { this->last = nullptr; }
 
     // 获取所属的并行任务
@@ -208,7 +209,7 @@ public:
     [[nodiscard]] void *get_context() const { return this->context; }
     void set_context(void *_context) { this->context = _context; }
 
-    SeriesWork *series_at(size_t index) {
+    SeriesWork *series_at(const size_t index) {
         if (index < this->subtasks_nr) {
             return this->all_series[index];
         } else { return nullptr; }

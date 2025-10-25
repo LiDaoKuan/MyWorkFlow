@@ -30,8 +30,8 @@ void SubTask::subtask_done() {
         cur = cur->done(); // 此处是多态。
         // cur->done()返回下一个要执行的任务。如果不存在则返回nullptr
         if (cur) {
-            cur->parent_ = parent; // 关键代码：保证父任务的指针能够正确传递下去
-            cur->dispatch(); // 执行子任务。非阻塞？
+            cur->parent_ = parent; // 关键代码: 保证父任务的指针能够正确传递下去
+            cur->dispatch(); // 执行子任务. 非阻塞？
         }
         // 没有下一个要执行的任务，并且父任务的指针不为nullptr
         // 说明该任务是某个并行任务组(Parallel)的一员。

@@ -72,6 +72,7 @@ public:
 
 protected:
     ~WFConnection() override {
+        // 如果存在清理函数, 说明上下文资源需要调用清理函数进行清理
         if (this->deleter) { this->deleter(this->context); }
     }
 };

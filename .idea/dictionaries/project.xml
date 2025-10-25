@@ -2,7 +2,10 @@
   <dictionary name="project">
     <words>
       <w>abstime</w>
+      <w>addrinfo</w>
       <w>addrlen</w>
+      <w>ancount</w>
+      <w>arcount</w>
       <w>bufsize</w>
       <w>caim</w>
       <w>commgroup</w>
@@ -10,8 +13,11 @@
       <w>commscheduler</w>
       <w>ctxp</w>
       <w>deinit</w>
+      <w>dnscache</w>
+      <w>dnsclass</w>
       <w>dptr</w>
       <w>emul</w>
+      <w>endpointparams</w>
       <w>epollet</w>
       <w>epollin</w>
       <w>epolloneshot</w>
@@ -35,7 +41,9 @@
       <w>maxevents</w>
       <w>maxlen</w>
       <w>memcpy</w>
+      <w>mname</w>
       <w>mpoller</w>
+      <w>msgbase</w>
       <w>msgqueue</w>
       <w>nbytes</w>
       <w>nevents</w>
@@ -44,6 +52,7 @@
       <w>noclose</w>
       <w>noreply</w>
       <w>nreceived</w>
+      <w>nscount</w>
       <w>nsec</w>
       <w>nthreads</w>
       <w>packagewrapper</w>
@@ -51,15 +60,21 @@
       <w>pipefd</w>
       <w>pollfd</w>
       <w>preadv</w>
+      <w>prec</w>
       <w>protocolmessage</w>
       <w>pwrite</w>
       <w>pwritev</w>
+      <w>qclass</w>
+      <w>qdcount</w>
       <w>rbtree</w>
+      <w>rclass</w>
+      <w>rdlength</w>
       <w>readv</w>
       <w>recv</w>
       <w>recvfrom</w>
       <w>reqprio</w>
       <w>resfd</w>
+      <w>routemanager</w>
       <w>saddr</w>
       <w>sleeprequest</w>
       <w>sockaddr</w>
@@ -68,6 +83,7 @@
       <w>stoped</w>
       <w>strncasecmp</w>
       <w>strndup</w>
+      <w>succ</w>
       <w>thrdpoll</w>
       <w>thrdpool</w>
       <w>timedwait</w>
@@ -76,7 +92,10 @@
       <w>toreply</w>
       <w>uriparser</w>
       <w>wfconnection</w>
+      <w>wfglobal</w>
+      <w>wfgraphtask</w>
       <w>wftask</w>
+      <w>wftaskfactory</w>
     </words>
   </dictionary>
 </component>

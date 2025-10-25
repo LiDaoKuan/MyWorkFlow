@@ -40,7 +40,7 @@ private:
     virtual SubTask *done() = 0;
 
 protected:
-    // 完成通知机制。子任务完成后应调用此函数，它会触发done()并通知父任务。
+    // 完成通知机制. 子任务完成后应调用此函数, 它会触发done()并通知父任务。
     void subtask_done();
 
 public:
@@ -49,9 +49,9 @@ public:
     void set_pointer(void *pointer) { this->pointer_ = pointer; }
 
 private:
-    // 关键枢纽。指向父任务（通常是ParallelTask），用于在子任务完成时向上回调。
+    // 关键枢纽. 指向父任务(通常是ParallelTask), 用于在子任务完成时向上回调.
     class ParallelTask *parent_;
-    // 用户数据指针. 提供get/set_pointer()方法，让任务能携带任意用户数据
+    // 用户数据指针. 提供get/set_pointer()方法, 让任务能携带任意用户数据
     void *pointer_;
     /* 使用pointer指针注意事项:
      * 1. 你需要确保在回调函数中，将 void*指针转换回它原本的、正确的类型
@@ -71,9 +71,8 @@ public:
 // 并行任务
 class ParallelTask : public SubTask {
 public:
-    /**dispatch()方法是 ParallelTask 的发动机。
-     * 主要实现 子任务的派发和执行
-     */
+    /**dispatch()方法是 ParallelTask 的发动机.
+     * 主要实现 子任务的派发和执行 */
     void dispatch() override;
 
 protected:
@@ -84,10 +83,9 @@ protected:
 
 private:
     /**剩余任务计数器: 用于同步. 追踪尚未完成的子任务数量
-     * nleft初始值==subtask_nr, 每完成一个子任务， nleft-1
+     * nleft初始值==subtask_nr, 每完成一个子任务,  nleft-1
      * 当nleft==0时，意味着所有子任务都已经完成
-     * 这正是 CountDownLatch（闭锁）同步模式的经典实现
-     */
+     * 这正是 CountDownLatch（闭锁）同步模式的经典实现 */
     size_t nleft;
 
 public:

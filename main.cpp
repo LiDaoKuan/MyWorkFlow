@@ -67,6 +67,14 @@ namespace TEST2 {
 
 namespace TEST3 {
     class myClass {
+    public:
+        int a = 0;
+
+        void test() {
+            a = 10;
+            std::cout << "myclass::test" << std::endl;
+        }
+
     protected:
         ~myClass() {
             delete this;
@@ -74,14 +82,49 @@ namespace TEST3 {
         }
     };
 
-    class myClass2 {
+    class myClass2 : public myClass {
+    public:
+        void test() {
+            a = 20;
+            std::cout << "myclass2::test" << std::endl;
+        }
+
         ~myClass2() { std::cout << "~myClass2() called" << std::endl; }
     };
 
     void Test() {
-        myClass *m1 = new myClass();
     }
 }
+
+/*
+namespace TEST4 {
+    void Test() {
+        // 1. 创建文件读取任务
+        FileReadArgs args{"example.txt", 0, 4096}; // 文件名、偏移量、读取长度
+        auto *task = WFTaskFactory::create_file_task(
+            FILE_TASK_READ, // 任务类型
+            &args, // 参数结构体
+            [](WFFileTask<FileReadArgs> *task) {
+                // 2. 在回调函数中处理结果
+                int state = task->get_state();
+                if (state == WFT_STATE_SUCCESS) {
+                    long bytes_read = task->get_retval(); // 实际读取的字节数
+                    fprintf(stderr, "Read %ld bytes from file\n", bytes_read);
+                    // 读取的数据通过 task->get_args()->buf 访问
+                } else {
+                    fprintf(stderr, "File read failed: state=%d, error=%d\n",
+                            state, task->get_error());
+                }
+            }
+            );
+
+        // 3. 启动任务（异步执行）
+        task->start();
+
+        // 主线程可继续执行其他逻辑，不会被文件IO阻塞
+        pause();
+    }
+}*/
 
 int main() {
     TEST3::Test();
