@@ -38,7 +38,7 @@ set(INCLUDE_HEADERS
         src/protocol/http_parser.h
         src/protocol/HttpUtil.h
         src/protocol/dns_parser.h
-        src/protocol/dns_type.h
+        src/protocol/dns_types.h
 
         src/util/URIParser.h
         src/util/StringUtil.h

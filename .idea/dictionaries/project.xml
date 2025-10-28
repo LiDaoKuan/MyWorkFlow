@@ -6,12 +6,14 @@
       <w>addrlen</w>
       <w>ancount</w>
       <w>arcount</w>
+      <w>axfr</w>
       <w>bufsize</w>
       <w>caim</w>
       <w>commgroup</w>
       <w>commrequest</w>
       <w>commscheduler</w>
       <w>ctxp</w>
+      <w>curbackup</w>
       <w>deinit</w>
       <w>dnscache</w>
       <w>dnsclass</w>
@@ -30,6 +32,8 @@
       <w>getsockname</w>
       <w>getsockopt</w>
       <w>gparent</w>
+      <w>hcur</w>
+      <w>hinfo</w>
       <w>httpmessage</w>
       <w>iocb</w>
       <w>iorequest</w>
@@ -38,13 +42,16 @@
       <w>iovec</w>
       <w>linkoff</w>
       <w>linkoffset</w>
+      <w>mailb</w>
       <w>maxevents</w>
       <w>maxlen</w>
       <w>memcpy</w>
       <w>mname</w>
       <w>mpoller</w>
       <w>msgbase</w>
+      <w>msgend</w>
       <w>msgqueue</w>
+      <w>msgsize</w>
       <w>nbytes</w>
       <w>nevents</w>
       <w>newnode</w>
@@ -57,16 +64,22 @@
       <w>nthreads</w>
       <w>packagewrapper</w>
       <w>padde</w>
+      <w>pexchange</w>
+      <w>phost</w>
       <w>pipefd</w>
+      <w>pmname</w>
       <w>pollfd</w>
       <w>preadv</w>
       <w>prec</w>
+      <w>prname</w>
       <w>protocolmessage</w>
+      <w>ptarget</w>
       <w>pwrite</w>
       <w>pwritev</w>
       <w>qclass</w>
       <w>qdcount</w>
       <w>rbtree</w>
+      <w>rcdend</w>
       <w>rclass</w>
       <w>rdlength</w>
       <w>readv</w>
@@ -74,6 +87,7 @@
       <w>recvfrom</w>
       <w>reqprio</w>
       <w>resfd</w>
+      <w>rlen</w>
       <w>routemanager</w>
       <w>saddr</w>
       <w>sleeprequest</w>
@@ -81,6 +95,8 @@
       <w>sockfd</w>
       <w>stacksize</w>
       <w>stoped</w>
+      <w>strcasecmp</w>
+      <w>strdup</w>
       <w>strncasecmp</w>
       <w>strndup</w>
       <w>succ</w>
