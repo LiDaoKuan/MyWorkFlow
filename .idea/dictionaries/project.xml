@@ -17,6 +17,7 @@
       <w>deinit</w>
       <w>dnscache</w>
       <w>dnsclass</w>
+      <w>dnsmessage</w>
       <w>dptr</w>
       <w>emul</w>
       <w>endpointparams</w>

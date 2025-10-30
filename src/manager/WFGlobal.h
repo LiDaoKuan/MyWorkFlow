@@ -35,9 +35,9 @@
 #include "RouteManager.h"
 #include "Executor.h"
 #include "EndpointParams.h"
-#include "WFResourcePool.h"
-#include "WFNameService.h"
-#include "WFDnsResolver.h"
+//#include "WFResourcePool.h"
+//#include "WFNameService.h"
+//#include "WFDnsResolver.h"
 
 class WFGlobal {};
 

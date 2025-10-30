@@ -39,6 +39,7 @@ set(INCLUDE_HEADERS
         src/protocol/HttpUtil.h
         src/protocol/dns_parser.h
         src/protocol/dns_types.h
+        src/protocol/DnsMessage.h
 
         src/util/URIParser.h
         src/util/StringUtil.h
@@ -54,6 +55,7 @@ set(INCLUDE_HEADERS
         src/manager/EndpointParams.h
         src/manager/RouteManager.h
         src/manager/WFGlobal.h
+
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/src/kernel)
@@ -81,6 +83,7 @@ add_executable(myWorkFlow main.cpp
         src/protocol/HttpMessage.cpp
         src/protocol/HttpUtil.cpp
         src/protocol/dns_parser.c
+        src/protocol/DnsMessage.cpp
 
         src/util/URIParser.cpp
         src/util/StringUtil.cpp

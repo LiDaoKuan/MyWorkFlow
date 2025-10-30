@@ -28,8 +28,8 @@
 #include <string>
 #include <mutex>
 #include <utility>
-#include "LRUCache.h"
-#include "DnsUtil.h"
+//#include "LRUCache.h"
+//#include "DnsUtil.h"
 
 class DnsCache
 {

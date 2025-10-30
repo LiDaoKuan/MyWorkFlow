@@ -92,8 +92,7 @@ namespace TEST3 {
         ~myClass2() { std::cout << "~myClass2() called" << std::endl; }
     };
 
-    void Test() {
-    }
+    void Test() {}
 }
 
 /*
@@ -126,7 +125,24 @@ namespace TEST4 {
     }
 }*/
 
+namespace TEST5 {
+    static inline void _append_uint8(std::string &s, uint8_t tmp) {
+        // 将tmp转换为C风格字符串(取地址后转为const char*), 然后插入
+        s.append(reinterpret_cast<const char *>(&tmp), sizeof(uint8_t));
+    }
+
+    void test() {
+        std::string str = "123";
+        _append_uint8(str, 100);
+        std::cout << str << std::endl;
+        if (str.at(3) == 100) {
+            std::cout << (int)str.at(3) << std::endl;
+        }
+    }
+};
+
 int main() {
-    TEST3::Test();
+    // TEST3::Test();
+    TEST5::test();
     return 0;
 }
