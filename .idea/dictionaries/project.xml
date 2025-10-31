@@ -35,6 +35,7 @@
       <w>gparent</w>
       <w>hcur</w>
       <w>hinfo</w>
+      <w>htons</w>
       <w>httpmessage</w>
       <w>iocb</w>
       <w>iorequest</w>

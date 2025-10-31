@@ -722,6 +722,7 @@ int dns_parser_parse_all(dns_parser_t *parser) {
     return 0;
 }
 
+// 解析接收到的DNS报文段
 int dns_parser_append_message(const void *buf, size_t *n, dns_parser_t *parser) {
     if (parser->complete) {
         // 如果解析已完成, 则忽略新数据, 直接返回1. 这确保了函数不会对已经处理完毕的报文进行重复操作
