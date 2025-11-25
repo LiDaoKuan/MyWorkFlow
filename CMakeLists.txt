@@ -43,6 +43,7 @@ set(INCLUDE_HEADERS
 
         src/util/URIParser.h
         src/util/StringUtil.h
+        src/util/LRUCache.h
 
         src/factory/Workflow.h
         src/factory/WFConnection.h
@@ -55,7 +56,8 @@ set(INCLUDE_HEADERS
         src/manager/EndpointParams.h
         src/manager/RouteManager.h
         src/manager/WFGlobal.h
-
+        src/util/DnsUtil.cpp
+        src/util/DnsUtil.h
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/src/kernel)

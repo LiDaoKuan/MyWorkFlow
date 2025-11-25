@@ -18,6 +18,8 @@
       <w>dnscache</w>
       <w>dnsclass</w>
       <w>dnsmessage</w>
+      <w>dnsutil</w>
+      <w>donot</w>
       <w>dptr</w>
       <w>emul</w>
       <w>endpointparams</w>
@@ -29,6 +31,8 @@
       <w>execrequest</w>
       <w>fdsync</w>
       <w>fildes</w>
+      <w>freeaddrinfo</w>
+      <w>getaddrinfo</w>
       <w>getevents</w>
       <w>getsockname</w>
       <w>getsockopt</w>

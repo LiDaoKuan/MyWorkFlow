@@ -797,8 +797,9 @@ void dns_parser_deinit(dns_parser_t *parser) {
     __dns_parser_free_record_list(&parser->additional_list);
 }
 
-
+// 获取游标cursor指向的节点的下一个节点
 int dns_record_cursor_next(struct dns_record **record, dns_record_cursor_t *cursor) {
+    // cursor是游标, cursor->next指向的是当前节点！
     // 判断当前节点的下一个节点（cursor->next->next）是否不是链表的头节点（cursor->head）
     if (cursor->next->next != cursor->head) {
         cursor->next = cursor->next->next; // 令游标指向下一个节点

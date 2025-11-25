@@ -86,8 +86,8 @@ static inline void list_move(struct list_head *entry, struct list_head *head) {
 
 /* 将entry移动到链表head的尾部。entry可能原本属于另一个链表 */
 static inline void list_move_tail(struct list_head *entry, struct list_head *head) {
-    __list_del(entry->prev, entry->next);
-    list_add_tail(entry, head);
+    __list_del(entry->prev, entry->next); // 将entry从原链表中删除
+    list_add_tail(entry, head); // 尾插入head指向的链表
 }
 
 static inline bool list_is_empty(const struct list_head *head) {

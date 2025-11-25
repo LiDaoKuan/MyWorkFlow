@@ -434,6 +434,8 @@ namespace protocol {
                 ret = -1;
             } else {
                 // DNS over UDP
+                // 静默恢复: 重新初始化解析器状态, 丢弃不匹配的数据包, 并返回 0.
+                // 这允许解析器继续等待下一个可能正确的响应包, 符合UDP DNS客户端的典型行为
                 dns_parser_deinit(this->parser);
                 dns_parser_init(this->parser);
                 ret = 0;
