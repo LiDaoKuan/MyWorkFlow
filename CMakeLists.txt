@@ -44,6 +44,7 @@ set(INCLUDE_HEADERS
         src/util/URIParser.h
         src/util/StringUtil.h
         src/util/LRUCache.h
+        src/util/DnsUtil.h
 
         src/factory/Workflow.h
         src/factory/WFConnection.h
@@ -51,13 +52,19 @@ set(INCLUDE_HEADERS
         src/factory/WFTask.h
         src/factory/WFGraphTask.h
         src/factory/WFTaskFactory.h
+        src/factory/WFResourcePool.cpp
+        src/factory/WFResourcePool.h
+        src/factory/WFTaskFactory.inl
+        src/factory/WFTaskError.h
 
         src/manager/DnsCache.h
         src/manager/EndpointParams.h
         src/manager/RouteManager.h
         src/manager/WFGlobal.h
-        src/util/DnsUtil.cpp
-        src/util/DnsUtil.h
+
+        src/nameservice/WFNameService.h
+
+        src/client/WFDnsClient.h
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/src/kernel)
@@ -65,6 +72,7 @@ include_directories(${CMAKE_SOURCE_DIR}/src/protocol)
 include_directories(${CMAKE_SOURCE_DIR}/src/factory)
 include_directories(${CMAKE_SOURCE_DIR}/src/util)
 include_directories(${CMAKE_SOURCE_DIR}/src/manager)
+include_directories(${CMAKE_SOURCE_DIR}/src/nameservice)
 
 add_executable(myWorkFlow main.cpp
         ${INCLUDE_HEADERS}
@@ -89,6 +97,7 @@ add_executable(myWorkFlow main.cpp
 
         src/util/URIParser.cpp
         src/util/StringUtil.cpp
+        src/util/DnsUtil.cpp
 
         src/factory/Workflow.cpp
         src/factory/WFTaskFactory.cpp
@@ -97,6 +106,10 @@ add_executable(myWorkFlow main.cpp
         src/manager/RouteManager.cpp
         src/manager/WFGlobal.cpp
         src/manager/DnsCache.cpp
+
+        src/nameservice/WFNameService.cpp
+
+        src/client/WFDnsClient.cpp
 )
 
 find_package(OpenSSL REQUIRED)

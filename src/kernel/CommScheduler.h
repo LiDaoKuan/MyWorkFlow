@@ -65,7 +65,9 @@ public:
              int ssl_connect_timeout, int response_timeout, size_t max_connections) {
         int ret = this->init(addr, addrlen, connect_timeout, response_timeout, max_connections);
 
-        if (ret >= 0) { this->set_ssl(ssl_ctx, ssl_connect_timeout); }
+        if (ret >= 0) {
+            this->set_ssl(ssl_ctx, ssl_connect_timeout);
+        }
 
         return ret;
     }

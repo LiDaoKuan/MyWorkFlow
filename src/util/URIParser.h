@@ -104,10 +104,8 @@ public:
         return parse(str.c_str(), uri);
     }
 
-    //
     static std::map<std::string, std::vector<std::string>> split_query_strict(const std::string &query);
 
-    //
     static std::map<std::string, std::string> split_query(const std::string &query);
 
     // 将类似/api/v1/users拆分为["api", "v1", "users"]

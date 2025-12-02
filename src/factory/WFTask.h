@@ -500,7 +500,8 @@ protected:
     ~WFMailboxTask() override = default;
 };
 
-// 多候选选择的异步任务类
+// 多候选选择的异步任务类.
+// 应用场景举例: 实现一个具有故障转移功能的客户端. 向3个提供相同服务的节点发送请求, 使用 SelectorTask 等待第一个成功响应, 然后取消另外两个请求
 class WFSelectorTask : public WFGenericTask {
 public:
     virtual int submit(void *msg) {
@@ -567,7 +568,7 @@ protected:
 protected:
     std::atomic<void *> message; // 存储被选中的消息. 通过原子操作确保只有一个提交者能成功设置消息.
     std::atomic<bool> flag; // 任务完成同步标志. 用于协调submit()和dispatch()的完成信号, 确保只触发一次 subtask_done().
-    std::atomic<size_t> nleft; // 剩余候选计数器.无论是通过 submit提交消息, 还是通过 dispatch进行调度, 每次操作都会递减 nleft. 当 nleft减至 0 时, 意味着所有候选操作都已执行完毕
+    std::atomic<size_t> nleft; // 剩余候选计数器.无论是通过submit提交消息, 还是通过dispatch进行调度, 每次操作都会递减nleft. 当 nleft减至 0 时, 意味着所有候选操作都已执行完毕
     std::function<void (WFSelectorTask *)> callback; // 任务完成后的回调函数
 
 public:
@@ -580,7 +581,14 @@ protected:
     ~WFSelectorTask() override = default;
 };
 
-// 条件任务. 需要特定条件才能执行
+// 条件任务. 需要特定条件才能执行. 应用场景:
+// - 数据库连接池:
+//      当连接池为空时, 获取连接的任务被封装在名为 "db_connection_available" 的 Conditional 中并等待.
+//      当有连接被归还时, 调用 WFTaskFactory::signal_by_name("db_connection_available", returned_conn) 来唤醒一个等待任务并将连接传递给它.
+// - 并行任务栅栏:
+//      主任务创建多个子任务并行工作, 并创建一个等待名为 "all_workers_done" 的条件任务.
+//      每个子任务完成后, 都调用 WFTaskFactory::count_by_name()（或其他机制）进行计数,
+//      当最后一个子任务完成时, 它发送 WFTaskFactory::signal_by_name("all_workers_done"), 触发主任务继续执行汇总工作.
 class WFConditional : public WFGenericTask {
 public:
     virtual void signal(void *msg) {
@@ -670,7 +678,7 @@ protected:
     ~WFGoTask() override = default;
 };
 
-// 循环任务生成器
+// 循环任务
 class WFRepeaterTask : public WFGenericTask {
 public:
     void set_create(std::function<SubTask *(WFRepeaterTask *)> _create) {

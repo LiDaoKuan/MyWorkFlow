@@ -307,7 +307,10 @@ void CommSchedGroup::deinit() {
     free(this->tg_heap);
 }
 
-// 向调度组添加目标
+/**向调度组添加目标
+ * @param target 要添加的目标
+ * @return 成功返回0, 失败返回-1
+ */
 int CommSchedGroup::add(CommSchedTarget *target) {
     int ret = -1;
 

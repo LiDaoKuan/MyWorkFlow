@@ -32,6 +32,7 @@
       <w>fdsync</w>
       <w>fildes</w>
       <w>freeaddrinfo</w>
+      <w>fvio</w>
       <w>getaddrinfo</w>
       <w>getevents</w>
       <w>getsockname</w>
@@ -58,6 +59,8 @@
       <w>msgend</w>
       <w>msgqueue</w>
       <w>msgsize</w>
+      <w>nameservice</w>
+      <w>nbreak</w>
       <w>nbytes</w>
       <w>nevents</w>
       <w>newnode</w>
@@ -92,6 +95,7 @@
       <w>recv</w>
       <w>recvfrom</w>
       <w>reqprio</w>
+      <w>resbuf</w>
       <w>resfd</w>
       <w>rlen</w>
       <w>routemanager</w>
@@ -108,6 +112,7 @@
       <w>succ</w>
       <w>thrdpoll</w>
       <w>thrdpool</w>
+      <w>timedgo</w>
       <w>timedwait</w>
       <w>timeo</w>
       <w>timerfd</w>
@@ -116,6 +121,7 @@
       <w>wfconnection</w>
       <w>wfglobal</w>
       <w>wfgraphtask</w>
+      <w>wfns</w>
       <w>wftask</w>
       <w>wftaskfactory</w>
     </words>

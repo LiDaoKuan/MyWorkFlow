@@ -31,12 +31,13 @@
  * @brief  Network config for client task
  */
 
+// 传输协议类型
 enum TransportType {
     TT_TCP,
     TT_UDP,
     TT_SCTP,
-    TT_TCP_SSL,
-    TT_SCTP_SSL,
+    TT_TCP_SSL, // 启用SSL
+    TT_SCTP_SSL, // 启用SSL
 };
 
 struct EndpointParams {

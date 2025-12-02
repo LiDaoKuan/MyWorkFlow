@@ -34,11 +34,19 @@
 #include "EndpointParams.h"
 #include "CommScheduler.h"
 
+// 负责核心路由管理
 class RouteManager {
 public:
+    // 轻量级的容器, 用于承载 get 方法的查询结果
     class RouteResult {
     public:
+        // 用户自定义的上下文指针.？？？ 它通常会在目标服务器发生状态变化(如从不可用变为可用)时, 通过 notify_available 等回调函数传回给用户代码.
+        // 这使得用户可以基于路由状态实现自定义的逻辑, 例如记录日志或触发特定操作
         void *cookie;
+
+        // request_object: 路由结果的核心, 指向一个可被调度的连接对象. 具体可能是两种类型:
+        // - CommSchedTarget: 当 DNS 解析结果只有一个 IP 地址时, 它直接代表一个具体的服务器目标.
+        // - CommSchedGroup: 当 DNS 解析结果有多个 IP 地址(即多个目标)时, 它是一个负载均衡组, 内部根据策略(如轮询或一致性哈希)选择一个目标进行连接
         CommSchedObject *request_object;
 
         RouteResult() : cookie(nullptr), request_object(nullptr) {}
@@ -49,24 +57,26 @@ public:
         }
     };
 
+    // 是框架与操作系统 Socket API 之间的桥梁. 亮点是对 SSL/TLS 连接生命周期的精细管理
     class RouteTarget : public CommSchedTarget {
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
-
+        // init()方法和deinit()方法并不是多态, 因为基类的两个对应函数不是虚函数。为什么不用多态？？？
     public:
         int init(const sockaddr *addr, socklen_t addrlen, SSL_CTX *ssl_ctx,
                  int connect_timeout, int ssl_connect_timeout, int response_timeout, size_t max_connections) {
+            // 先进行父类的初始化
             int ret = this->CommSchedTarget::init(addr, addrlen, ssl_ctx, connect_timeout, ssl_connect_timeout, response_timeout, max_connections);
             if (ret >= 0 && ssl_ctx) {
-                SSL_CTX_up_ref(ssl_ctx);
+                SSL_CTX_up_ref(ssl_ctx); // 增加SSL上下文引用计数
             }
             return ret;
         }
 
         void deinit() {
             SSL_CTX *ssl_ctx = this->get_ssl_ctx();
-            this->CommSchedTarget::deinit();
+            this->CommSchedTarget::deinit(); // 先释放父类资源
             if (ssl_ctx) {
-                SSL_CTX_free(ssl_ctx);
+                SSL_CTX_free(ssl_ctx); // 安全释放SSL上下文
             }
         }
 #endif
@@ -75,6 +85,7 @@ public:
         int state;
 
     private:
+        // 重写工厂方法
         WFConnection *new_connection(int connect_fd) override {
             return new WFConnection;
         }
@@ -95,7 +106,11 @@ private:
     rb_root cache_{};
 
 public:
+    // 熔断机制的接口
+
+    // 标记某个目标为熔断状态
     static void notify_unavailable(void *cookie, CommTarget *target);
+    // 标记某个已熔断的目标现在可用
     static void notify_available(void *cookie, CommTarget *target);
 };
 

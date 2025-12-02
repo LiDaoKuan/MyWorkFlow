@@ -52,10 +52,10 @@ protected:
 protected:
     std::vector<WFGraphNode *> successors; // 存储所有直接后继节点. 定义了当前节点执行完成后, 哪些节点有资格被激活
 
+    // protected属性的构造和析构函数. 确保 WFGraphNode 只能被其友元类(如 WFGraphTask)或派生类创建和管理
 protected:
     WFGraphNode() : WFCounterTask(0, nullptr) {}
     ~WFGraphNode() override;
-    // protected属性的构造和析构函数. 确保 WFGraphNode 只能被其友元类(如 WFGraphTask)或派生类创建和管理
     friend class WFGraphTask;
 };
 
