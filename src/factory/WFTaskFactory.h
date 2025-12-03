@@ -229,8 +229,7 @@ public:
     static int send_by_name(const std::string &mailbox_name, void *msg, size_t max);
 
     // 类型安全的批量消息发送, 可发送一个消息数组
-    template <typename T>
-    static int send_by_name(const std::string &mailbox_name, T *const msg[], size_t max);
+    template <typename T> static int send_by_name(const std::string &mailbox_name, T *const msg[], size_t max);
 
 public:
     // 创建多候选选择的异步任务
@@ -318,26 +317,33 @@ public:
     static void reset_go_task(WFGoTask *task, FUNC &&func, ARGS &&... args);
 
 public:
+    /**创建有向无环图任务（返回指向新创建的空任务的指针, 需要创建完成后通过 create_graph_node 添加节点）
+     * @param callback 一个回调函数, 当整个图任务（即图中所有节点任务）都执行完毕时, 框架会自动调用此函数 */
     static WFGraphTask *create_graph_task(graph_callback_t callback) {
         return new WFGraphTask(std::move(callback));
     }
 
 public:
+    // 创建一个不执行任何操作的空任务, 通常用作工作流中的占位符或同步点
     static WFEmptyTask *create_empty_task() {
         return new WFEmptyTask;
     }
 
+    // 创建一个动态任务, 其实际要执行的具体子任务可以在运行时根据条件动态生成(调用传入的用于创建任务的函数 creat )
     static WFDynamicTask *create_dynamic_task(dynamic_create_t create);
 
+    // 创建一个重复器任务, 能够根据预设逻辑循环执行一系列操作, 直到满足特定条件
     static WFRepeaterTask *create_repeater_task(repeated_create_t create, repeater_callback_t callback) {
         return new WFRepeaterTask(std::move(create), std::move(callback));
     }
 
 public:
+    // 创建模块任务
     static WFModuleTask *create_module_task(SubTask *first, module_callback_t callback) {
         return new WFModuleTask(first, std::move(callback));
     }
 
+    // 创建模块任务
     static WFModuleTask *create_module_task(SubTask *first, SubTask *last, module_callback_t callback) {
         auto *task = new WFModuleTask(first, std::move(callback));
         task->sub_series()->set_last_task(last);
@@ -351,22 +357,28 @@ private:
     using T = WFNetworkTask<REQ, RESP>;
 
 public:
+    // 通过主机名和端口创建任务. 框架内部自动处理DNS解析
     static T *create_client_task(enum TransportType type, const std::string &host, unsigned short port,
                                  int retry_max, std::function<void (T *)> callback);
 
+    // 通过完整URL创建任务. 适用于HTTP/Redis等有标准URL格式的协议, 框架会解析URL中的协议、主机、端口和路径
     static T *create_client_task(enum TransportType type, const std::string &url,
                                  int retry_max, std::function<void (T *)> callback);
 
+    // 通过已解析的URI对象创建任务. 适合需要复用URI解析结果或进行高级URI处理的场景, 性能更优
     static T *create_client_task(enum TransportType type, const ParsedURI &uri,
                                  int retry_max, std::function<void (T *)> callback);
 
+    // 通过原始套接字地址创建任务. 适用于已获得二进制地址（如通过getaddrinfo）的场景, 可跳过DNS解析
     static T *create_client_task(enum TransportType type, const struct sockaddr *addr, socklen_t addrlen,
                                  int retry_max, std::function<void (T *)> callback);
 
+    // 安全增强版. 在原始地址基础上, 额外指定SSL上下文, 用于建立TLS/SSL加密连接
     static T *create_client_task(enum TransportType type, const struct sockaddr *addr, socklen_t addrlen,
                                  SSL_CTX *ssl_ctx, int retry_max, std::function<void (T *)> callback);
 
 public:
+    // 服务端专用. 当新连接到达时, 由框架自动调用, 为该连接创建对应的任务对象并绑定处理函数
     static T *create_server_task(CommService *service, std::function<void (T *)> &process);
 };
 
@@ -376,21 +388,22 @@ private:
     using T = WFThreadTask<INPUT, OUTPUT>;
 
 public:
+    // 创建自定义计算任务. 指定任务应放入的计算队列名, 由框架的全局调度器管理
     static T *create_thread_task(const std::string &queue_name, std::function<void (INPUT *, OUTPUT *)> routine,
                                  std::function<void (T *)> callback);
 
-    /* Create thread task with running time limit. */
-    static T *create_thread_task(time_t seconds, long nanoseconds,
-                                 const std::string &queue_name, std::function<void (INPUT *, OUTPUT *)> routine,
+    /* Create thread task with running time limit. 为任务设置最长运行时间, 超时后任务会被中断 */
+    static T *create_thread_task(time_t seconds, long nanoseconds, const std::string &queue_name,
+                                 std::function<void (INPUT *, OUTPUT *)> routine,
                                  std::function<void (T *)> callback);
 
 public:
-    /* Create thread task on user's executor and execution queue. */
+    /* Create thread task on user's executor and execution queue. 自定义调度资源. 允许用户完全掌控任务运行在哪个特定的执行器(Executor)和执行队列(ExecQueue) */
     static T *create_thread_task(ExecQueue *queue, Executor *executor,
                                  std::function<void (INPUT *, OUTPUT *)> routine,
                                  std::function<void (T *)> callback);
 
-    /* With running time limit. */
+    /* With running time limit. 自定义调度资源且带超时. 同时提供精细的资源控制和运行时间保障 */
     static T *create_thread_task(time_t seconds, long nanoseconds,
                                  ExecQueue *queue, Executor *executor,
                                  std::function<void (INPUT *, OUTPUT *)> routine,

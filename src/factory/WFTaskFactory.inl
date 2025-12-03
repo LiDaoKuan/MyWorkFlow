@@ -65,9 +65,8 @@ template <>
 int WFTaskFactory::send_by_name(const std::string &, void *const *, size_t);
 
 template <typename T>
-int WFTaskFactory::send_by_name(const std::string &mailbox_name, T *const msg[],
-                                size_t max) {
-    return WFTaskFactory::send_by_name(mailbox_name, (void *const *)msg, max);
+int WFTaskFactory::send_by_name(const std::string &mailbox_name, T *const msg[], size_t max) {
+    return WFTaskFactory::send_by_name(mailbox_name, static_cast<void *const *>(msg), max);
 }
 
 template <>
