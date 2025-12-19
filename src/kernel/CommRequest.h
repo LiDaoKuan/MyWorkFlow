@@ -62,7 +62,7 @@ protected:
 #define TOR_WAIT_TIMEOUT        1       // 等待资源超时. 在连接池中等待可用连接的时间超过设定值, 表示后端服务可能过载或连接池大小不足
 #define TOR_CONNECT_TIMEOUT     2       // 连接建立超时. TCP三次握手或SSL握手未在指定时间内完成, 通常指向网络不通、防火墙拦截或服务未启动
 #define TOR_TRANSMIT_TIMEOUT    3       // 数据传输超时. 连接已建立, 但请求的发送或响应接收未在规定时间内完成, 可能由于网络延迟、数据包丢失或服务端处理缓慢
-    int timeout_reason{-1};
+    int timeout_reason{0};
 
 protected:
     int wait_timeout; // 获取连接的超时时间

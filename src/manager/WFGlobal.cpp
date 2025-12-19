@@ -59,13 +59,17 @@ public:
     const char *get_default_port(const std::string &scheme) {
         const auto it = static_scheme_port_.find(scheme);
 
-        if (it != static_scheme_port_.end()) return it->second;
+        if (it != static_scheme_port_.end()) {
+            return it->second;
+        }
 
         const char *port = nullptr;
         user_scheme_port_mutex_.lock();
         const auto it2 = user_scheme_port_.find(scheme);
 
-        if (it2 != user_scheme_port_.end()) port = it2->second.c_str();
+        if (it2 != user_scheme_port_.end()) {
+            port = it2->second.c_str();
+        }
 
         user_scheme_port_mutex_.unlock();
         return port;
@@ -82,10 +86,14 @@ public:
 
         sync_mutex_.lock();
         inc = ++sync_count_ > sync_max_;
-        if (inc) sync_max_ = sync_count_;
+        if (inc) {
+            sync_max_ = sync_count_;
+        }
 
         sync_mutex_.unlock();
-        if (inc) WFGlobal::increase_handler_thread();
+        if (inc) {
+            WFGlobal::increase_handler_thread();
+        }
     }
 
     void sync_operation_end() {
@@ -309,6 +317,7 @@ private:
     Executor dns_executor_;
 };
 
+// 单例类, 仅内部使用
 class __CommManager {
 public:
     static __CommManager *get_instance() {
@@ -572,8 +581,9 @@ public:
     WFResourcePool *get_dns_respool() { return &respool_; };
 
 private:
-    __DnsClientManager() : respool_(WFGlobal::get_global_settings()->
-                                    dns_server_params.max_connections) {
+    __DnsClientManager() :
+        respool_(WFGlobal::get_global_settings()->
+                 dns_server_params.max_connections) {
         const char *path = WFGlobal::get_global_settings()->resolv_conf_path;
 
         client_ = nullptr;
@@ -585,10 +595,14 @@ private:
             std::string search;
 
             __parse_resolv_conf(path, url, search, &ndots, &attempts, &rotate);
-            if (url.size() == 0) url = "8.8.8.8";
+            if (url.size() == 0) {
+                url = "8.8.8.8";
+            }
 
             client_ = new WFDnsClient;
-            if (client_->init(url, search, ndots, attempts, rotate) >= 0) return;
+            if (client_->init(url, search, ndots, attempts, rotate) >= 0) {
+                return;
+            }
 
             delete client_;
             client_ = nullptr;

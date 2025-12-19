@@ -119,7 +119,7 @@ int Executor::request(ExecSession *session, ExecQueue *queue) {
         pthread_mutex_lock(&queue->mutex);
         list_add_tail(&entry->list, &queue->session_list); // 将entry插入队列尾部
         if (queue->session_list.next == &entry->list) {
-            // 新加入的 entry是队列中的第一个任务(即链表在添加前为空). 此时需要主动启动执行循环
+            // 如果新加入的 entry 是队列中的第一个任务(即链表在添加前为空). 此时需要主动启动执行循环
             const thrdpool_task task = {
                 .routine = Executor::executor_thread_routine,
                 .context = queue

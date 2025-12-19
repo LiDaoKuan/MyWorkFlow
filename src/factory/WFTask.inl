@@ -44,7 +44,9 @@ int WFNetworkTask<REQ, RESP>::get_peer_addr(sockaddr *addr, socklen_t *addrlen) 
     return -1;
 }
 
-// 用于客户端网络通信的模板类
+/**用于客户端网络通信的模板类
+ * @tparam REQ 请求协议类型（例如 protocol::HttpRequest）.
+ * @tparam RESP 响应协议类型（例如 protocol::HttpResponse）. */
 template <class REQ, class RESP>
 class WFClientTask : public WFNetworkTask<REQ, RESP> {
 protected:

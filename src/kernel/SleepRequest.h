@@ -27,7 +27,7 @@ public:
     }
 
 protected:
-    // 主动取消正在进行的睡眠会话
+    // 主动取消正在进行的延时会话
     int cancel() {
         return this->scheduler->unsleep(this);
     }

@@ -262,16 +262,14 @@ public:
     // 最多只向 max 个名为 cond_name 的条件任务发送消息
     static int signal_by_name(const std::string &cond_name, void *msg, size_t max);
 
-    /**上方函数的应用场景:
+    /* 上方函数的应用场景:
      * 1. 限流器: 假设你有一个连接池, 最多支持10个并发. 当有15个任务在等待连接时, 每次释放一个连接回池中,
      *      你可以调用 signal_by_name("connection_available", freed_conn, 1), 确保每次只唤醒一个等待任务来获取这个新释放的连接, 从而精确控制并发数.
      * 2. 批量任务分发: 如果你有一批数据需要处理, 但不想一次性唤醒所有消费者导致系统过载, 可以分批唤醒.
-     *      例如，每次唤醒5个任务：signal_by_name("data_ready", data_batch, 5)
-     */
+     *      例如，每次唤醒5个任务：signal_by_name("data_ready", data_batch, 5) */
 
-    // 向最多 max 个任务发送一个消息数组中的不同消息
-    template <typename T>
-    static int signal_by_name(const std::string &cond_name, T *const msg[], size_t max);
+    /**向最多 max 个任务发送一个消息数组中的不同消息 */
+    template <typename T> static int signal_by_name(const std::string &cond_name, T *const msg[], size_t max);
 
 public:
     // 创建守卫任务: 将一个需要受保护的资源才能执行的实际任务（SubTask *task）包装起来，并与一个全局唯一的资源名（resource_name）绑定
@@ -281,13 +279,15 @@ public:
 
     // create_guard 和 release_guard 必须成对使用
 
-    /* 释放资源锁并通知等待者: 在当前任务完成并释放资源后, 此函数会向下一个等待该资源的“守卫”任务发送信号(msg), 使其获得资源并开始执行
+    /**@brief 释放资源锁并通知等待者: 在当前任务完成并释放资源后, 此函数会向下一个等待该资源的“守卫”任务发送信号(msg), 使其获得资源并开始执行 \n
      * The 'guard' is acquired after started, so call 'release_guard' after
      * and only after the task is finished, typically in its callback.
-     * The function returns 1 if another is signaled, otherwise returns 0. */
+     * The function returns 1 if another is signaled, otherwise returns 0.
+     * @return 0 没有唤醒其他任务
+     * @return 1 唤醒了其他任务 */
     static int release_guard(const std::string &resource_name, void *msg);
 
-    // 释放资源锁的安全版本. 功能与 release_guard 相同, 但提供了更强的异常安全保证, 确保即使在信号发送过程中出现错误, 资源也能被正确标记为已释放
+    // 释放资源锁的异步安全版本. 功能与 release_guard 相同, 但提供了更强的异常安全保证, 确保即使在信号发送过程中出现错误, 资源也能被正确标记为已释放
     static int release_guard_safe(const std::string &resource_name, void *msg);
 
 public:

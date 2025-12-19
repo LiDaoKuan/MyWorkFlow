@@ -47,7 +47,7 @@ enum {
     WFT_STATE_SYS_ERROR = CS_STATE_ERROR, /* 系统内部错误. 指框架底层或操作系统级别的错误, 如内存分配失败、系统调用异常等 */
     WFT_STATE_SSL_ERROR = 65, /* SSL/TLS 握手或通信错误. 在建立安全加密连接时发生问题, 如证书验证失败、协议版本不匹配等 */
     WFT_STATE_DNS_ERROR = 66, /* DNS 解析失败. 仅用于客户端任务, 表示无法将域名解析为有效的IP地址. for client task only */
-    WFT_STATE_TASK_ERROR = 67, /* 任务逻辑错误. 在任务自定义的回调函数或执行逻辑中抛出了异常或返回了错误 */
+    WFT_STATE_TASK_ERROR = 67, /* 任务逻辑错误. 在任务执行逻辑或自定义的回调函数中抛出了异常或返回了错误 */
     WFT_STATE_ABORTED = CS_STATE_STOPPED /* 任务被主动中止. 任务可能被用户或其他外部逻辑主动取消或终止 */
 };
 
@@ -96,7 +96,7 @@ protected:
     }
 
 public:
-    void *user_data; // 用户自定义的上下文数据指针
+    void *user_data; // ？？？
 
 protected:
     INPUT input; // 存储任务的输入数据
@@ -244,6 +244,7 @@ protected:
     ~WFNetworkTask() override = default;
 };
 
+// 定时任务
 class WFTimerTask : public SleepRequest {
 public:
     void start() {
@@ -262,7 +263,7 @@ public:
     void set_callback(std::function<void(WFTimerTask *)> cb) { this->callback = std::move(cb); }
 
 public:
-    void *user_data; // 用户自定义数据指针, 用于在回调函数中传递上下文信息
+    void *user_data; // 指向对象的指针
 
 protected:
     // 任务完成后调用此函数
@@ -320,7 +321,7 @@ public:
     void set_callback(std::function<void (WFFileTask<ARGS> *)> cb) { this->callback = std::move(cb); }
 
 public:
-    void *user_data; // 用户自定义数据指针
+    void *user_data; // 指向对象的指针
 
 protected:
     SubTask *done() override {
@@ -399,7 +400,7 @@ protected:
     ~WFGenericTask() override = default;
 };
 
-// 用于实现协同等待机制的计数器任务
+// 用于实现协同等待机制的计数器任务（匿名）
 class WFCounterTask : public WFGenericTask {
 public:
     // 减少任务计数
@@ -445,6 +446,7 @@ protected:
 // 异步消息邮箱任务. 实现了多生产者-多消费者模式下的线程安全消息交换. 核心价值在于提供了无需锁的线程安全通信机制, 允许不同任务或线程通过共享的“邮箱”安全地传递数据指针
 class WFMailboxTask : public WFGenericTask {
 public:
+    // 发送方发送消息
     virtual void send(void *msg) {
         *this->mailbox = msg;
         // exchange: 将标志位无条件设为true, 并返回设置前的旧值
@@ -492,7 +494,8 @@ public:
     }
 
     // 使用内部邮箱(user_data). 用于点对点单次消息传递, 消息存储在任务自身的user_data中
-    explicit WFMailboxTask(std::function<void (WFMailboxTask *)> &&cb) : flag(false), callback(std::move(cb)) {
+    explicit WFMailboxTask(std::function<void (WFMailboxTask *)> &&cb) :
+        flag(false), callback(std::move(cb)) {
         this->mailbox = &this->user_data;
     }
 
@@ -602,7 +605,7 @@ public:
 protected:
     // 任务调度入口
     void dispatch() override {
-        series_of(this)->push_front(this->task); // 将包装的任务加入系列
+        series_of(this)->push_front(this->task); // 将包装的任务加入任务流.
         this->task = nullptr; // 移交任务所有权
         // 检查并设置标志
         if (this->flag.exchange(true)) {
@@ -632,7 +635,7 @@ protected:
     ~WFConditional() override { delete this->task; }
 };
 
-// 封装异步计算任务的基类
+// 封装异步计算任务的基类（ GO风格 协程？？？）
 class WFGoTask : public ExecRequest {
 public:
     void start() {

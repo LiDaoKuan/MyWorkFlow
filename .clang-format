@@ -21,7 +21,7 @@ AlignEscapedNewlines: Right
 AlignOperands: true
 
 # 对齐连续的尾随的注释
-AlignTrailingComments: false
+AlignTrailingComments: true
 
 # 不允许函数声明的所有参数在放在下一行
 AllowAllParametersOfDeclarationOnNextLine: false
@@ -104,7 +104,7 @@ BreakBeforeTernaryOperators: false
 BreakConstructorInitializersBeforeComma: false
 
 # 在构造函数的初始化列表的冒号后换行
-BreakConstructorInitializers: None
+BreakConstructorInitializers: AfterColon
 
 #BreakInheritanceList: AfterColon
 

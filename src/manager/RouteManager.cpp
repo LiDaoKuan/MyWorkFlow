@@ -112,7 +112,8 @@ private:
     std::string hostname;
 
 public:
-    explicit RouteTargetTCP_TLS_SNI(const std::string &name) : hostname(name) {}
+    explicit RouteTargetTCP_TLS_SNI(const std::string &name) :
+        hostname(name) {}
 };
 
 using RouteTargetSCTP_SSL = RouteTargetSCTP;
@@ -136,7 +137,8 @@ private:
     std::string hostname;
 
 public:
-    explicit RouteTargetSCTP_TLS_SNI(const std::string &name) : hostname(name) {}
+    explicit RouteTargetSCTP_TLS_SNI(const std::string &name) :
+        hostname(name) {}
 };
 
 //  protocol_name\n user\n pass\n dbname\n ai_addr ai_addrlen \n....
@@ -169,8 +171,9 @@ public:
     int nleft; // 当前可用的目标数量(未熔断的目标数)
     int nbreak; // 当前不可用的目标数量(已熔断的目标数)
 
-    RouteResultEntry() : request_object(nullptr), group(nullptr), nleft(0), nbreak(0),
-                         breaker_list(&this->breaker_list, &this->breaker_list) {}
+    RouteResultEntry() :
+        request_object(nullptr), group(nullptr), nleft(0), nbreak(0),
+        breaker_list(&this->breaker_list, &this->breaker_list) {}
 
 public:
     int init(const struct RouteParams *params);
@@ -233,7 +236,7 @@ RouteManager::RouteTarget *RouteResultEntry::create_target(const struct RoutePar
     return target;
 }
 
-// 它根据 RouteParams 中的 addrinfo 链表, 为每个地址调用 create_target 方法创建对应的 RouteTarget 对象
+// 根据 RouteParams 中的 addrinfo 链表, 为每个地址调用 create_target 方法创建对应的 RouteTarget 对象
 // 如果存在多个目标, 则会创建 CommSchedGroup 来实现负载均衡. 此方法完成了从参数到可调度对象的转换
 int RouteResultEntry::init(const struct RouteParams *params) {
     const struct addrinfo *addr = params->addrinfo;

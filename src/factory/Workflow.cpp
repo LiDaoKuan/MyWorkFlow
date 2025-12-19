@@ -123,7 +123,9 @@ SubTask *SeriesWork::pop_task() {
     if (this->front != this->back) {
         // 第一步：从环形队列中获取常规任务
         task = this->queue[this->front++];
-        if (this->front == this->queue_size) { this->front = 0; }
+        if (this->front == this->queue_size) {
+            this->front = 0;
+        }
     } else {
         // 第二步：队列为空后，才取出特殊的 last 任务
         task = this->last;

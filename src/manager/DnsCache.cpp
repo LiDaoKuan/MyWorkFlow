@@ -41,13 +41,14 @@
 
 // 带延迟标记的缓存查询函数. 根据指定的查询类型(GET_TYPE_TTL 或 GET_TYPE_CONFIDENT)来检查并返回有效的DNS缓存项
 const DnsCache::DnsHandle *DnsCache::get_inner(const HostPort &host_port, int type) {
-    int64_t cur = GET_CURRENT_SECOND;
+    const int64_t cur = GET_CURRENT_SECOND;
     std::lock_guard<std::mutex> lock(mutex_); // 获取互斥锁, 确保在检查缓存状态和进行后续操作时, 缓存池不会被其他线程修改
     const DnsHandle *handle = cache_pool_.get(host_port);
 
-    if (handle && ((type == GET_TYPE_TTL && cur > handle->value.expire_time) || // 检查当前时间 cur 是否超过了该缓存项的绝对过期时间(expire_time). 这是缓存有效性的最终底线
-                   (type == GET_TYPE_CONFIDENT && cur > handle->value.confident_time) // 检查当前时间 cur是否超过了该缓存项的置信时间(confident_time). 这个时间通常比绝对过期时间要早, 用于实现渐进式更新
-        )) // 此函数在 GET_TYPE_CONFIDENT 模式下, 一旦超时就认为缓存无效, 适用于对数据实时性要求高的场景
+    if (handle &&
+        ((type == GET_TYPE_TTL && cur > handle->value.expire_time) ||       // 检查当前时间 cur 是否超过了该缓存项的绝对过期时间(expire_time). 这是缓存有效性的最终底线
+         (type == GET_TYPE_CONFIDENT && cur > handle->value.confident_time) // 检查当前时间 cur是否超过了该缓存项的置信时间(confident_time). 这个时间通常比绝对过期时间要早, 用于实现渐进式更新
+        ))                                                                  // 此函数在 GET_TYPE_CONFIDENT 模式下, 一旦超时就认为缓存无效, 适用于对数据实时性要求高的场景
     {
         // 当缓存项已过期时, 并非立即从缓存中删除它, 而是执行一套延迟更新逻辑:
         if (!handle->value.delayed()) // 如果该缓存项尚未被标记为"延迟更新"
@@ -81,7 +82,7 @@ const DnsCache::DnsHandle *DnsCache::put(const HostPort &host_port, struct addri
                                          unsigned int dns_ttl_default, unsigned int dns_ttl_min) {
     int64_t expire_time;
     int64_t confident_time;
-    int64_t cur_time = GET_CURRENT_SECOND;
+    const int64_t cur_time = GET_CURRENT_SECOND;
 
     if (dns_ttl_min > dns_ttl_default) {
         // 确保用于计算confident_time的dns_ttl_min不会大于用于计算expire_time的dns_ttl_default.
@@ -125,6 +126,6 @@ void DnsCache::del(const DnsCache::HostPort &key) {
     cache_pool_.del(key);
 }
 
-DnsCache::DnsCache() {}
+DnsCache::DnsCache() = default;
 
-DnsCache::~DnsCache() {}
+DnsCache::~DnsCache() = default;

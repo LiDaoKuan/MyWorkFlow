@@ -18,15 +18,14 @@ public:
              int ndots, int attempts, bool rotate);
     void deinit();
 
-    WFDnsTask *create_dns_task(const std::string &name,
-                               dns_callback_t callback);
+    WFDnsTask *create_dns_task(const std::string &name, dns_callback_t callback);
 
 private:
-    void *params;
+    void *params{nullptr};
     std::atomic<size_t> id;
 
 public:
-    virtual ~WFDnsClient() {}
+    virtual ~WFDnsClient() = default;
 };
 
 #endif //MYWORKFLOW_WFDNSCLIENT_H

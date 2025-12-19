@@ -277,7 +277,7 @@ public:
 /*虽然类名是 SleepSession，但其 handle 方法处理的 state 参数暗示了它可能管理着一个小的状态机*/
 class SleepSession {
 private:
-    // 计算休眠时长, 为任务调度提供时间依据(策略模式)
+    // 计算休眠时长, 通过引用传参输出. 为任务调度提供时间依据(策略模式)
     virtual int duration(timespec *value) = 0;
     // 处理状态变更, 响应超时、唤醒等异步事件
     virtual void handle(int state, int error) = 0;
@@ -312,6 +312,7 @@ public:
     friend class Communicator;
 };
 
+// 事件驱动式通信调度器
 class Communicator {
 public:
     int init(size_t poller_pthreads, size_t handler_threads);

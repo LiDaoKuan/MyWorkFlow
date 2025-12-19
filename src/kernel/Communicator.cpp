@@ -2006,7 +2006,7 @@ int Communicator::sleep(SleepSession *session) {
             return 0;
         }
     }
-
+    // 注册失败
     return -1;
 }
 
@@ -2120,7 +2120,7 @@ int Communicator::is_handler_thread() const {
     return thrdpool_in_pool(this->thrdpool);
 }
 
-extern "C" void __thrdpool_schedule(const thrdpool_task *, void *, thrdpool_t *);
+extern "C" void __thrdpool_schedule(const thrdpool_task *task, void *buf, thrdpool_t *pool);
 
 // 增加线程数量
 int Communicator::increase_handler_thread() {

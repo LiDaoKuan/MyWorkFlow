@@ -38,7 +38,7 @@
 // 解析和存储URI各组成部分的数据结构
 class ParsedURI {
 public:
-    char *scheme{nullptr};
+    char *scheme{nullptr}; // 协议类型.
     char *userinfo{nullptr};
     char *host{nullptr};
     char *port{nullptr};

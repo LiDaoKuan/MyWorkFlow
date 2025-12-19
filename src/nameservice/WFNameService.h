@@ -64,10 +64,10 @@ public:
     explicit WFRouterTask(std::function<void (WFRouterTask *)> &&cb) : callback(std::move(cb)) {}
 };
 
-// 诊断数据容器
+// 追踪数据容器. 比如用于请求链路追踪
 class WFNSTracing {
 public:
-    void *data; // 指向实际诊断数据的指针
+    void *data; // 指向实际追踪数据的指针
     void (*deleter)(void *); // 负责释放data所指内存的函数指针
 
 public:
