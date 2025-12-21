@@ -35,7 +35,6 @@ public:
     static std::string strip(const std::string &str);
     static bool start_with(const std::string &str, const std::string &prefix);
 
-    //this will filter any empty result, so the result vector has no empty string
     static std::vector<std::string> split_filter_empty(const std::string &str, char sep);
 };
 

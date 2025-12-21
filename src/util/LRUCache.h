@@ -45,13 +45,14 @@ public:
     VALUE value; // 直接存储缓存项对应的值数据，允许外部直接访问
 
 private:
-    LRUHandle(const KEY &k, const VALUE &v) : value(v), key(k) {}
+    LRUHandle(const KEY &k, const VALUE &v) :
+        value(v), key(k) {}
 
-    KEY key; // 用于唯一标识缓存项，是哈希表查找的依据
+    KEY key;        // 用于唯一标识缓存项，是哈希表查找的依据
     list_head list; // 用于将 LRUHandle 对象链接到维护访问顺序的双向链表中(如LRU链表)
-    rb_node rb; // 用于将 LRUHandle 对象组织到红黑树中, 通常是为了快速查找或按序访问
-    bool in_cache; // 标记此句柄当前是否正被缓存所管理
-    int ref; // 跟踪当前有多少个地方正在使用这个句柄, 是控制其生命周期的重要依据
+    rb_node rb;     // 用于将 LRUHandle 对象组织到红黑树中, 通常是为了快速查找或按序访问
+    bool in_cache;  // 标记此句柄当前是否正被缓存所管理
+    int ref;        // 跟踪当前有多少个地方正在使用这个句柄, 是控制其生命周期的重要依据
 
     template <typename, typename, class> friend class LRUCache;
 };
@@ -165,17 +166,17 @@ public:
         // 创建一个新的 Handle
         e = new Handle(key, value);
         e->in_cache = true;
-        e->ref = 2;
+        e->ref = 2; // 新建handle引用初始化为2: 基础值为1, 将handle返回给外部 + 1
         list_add_tail(&e->list, &this->in_use);
         ++this->size;
 
         // key已经存在
         if (bound && !(key < bound->key)) {
             rb_replace_node(&bound->rb, &e->rb, &this->cache_map); // 用新key替换旧key, 同时引用计数变为2
-            this->erase_node(bound); // 删除旧key
-        } else // key不存在
+            this->erase_node(bound);                               // 删除旧key
+        } else                                                     // key不存在
         {
-            rb_link_node(&e->rb, parent, p); // 将新key插入红黑树中的指定位置*p. 不关心树的平衡
+            rb_link_node(&e->rb, parent, p);           // 将新key插入红黑树中的指定位置*p. 不关心树的平衡
             rb_insert_color(&e->rb, &this->cache_map); // 平衡新插入的节点
         }
 
@@ -199,9 +200,9 @@ public:
         auto *e = const_cast<Handle *>(this->get(key)); // 通过 get 获取句柄
         // 如果获取到, 说明该key存在, 执行删除操作
         if (e) {
-            this->unref(e); // 由于 get增加了引用, 此处的 unref 会平衡这次引用
+            this->unref(e);                     // 由于 get增加了引用, 此处的 unref 会平衡这次引用
             rb_erase(&e->rb, &this->cache_map); // 从红黑树中移除
-            this->erase_node(e); // 从链表中移除并且减少引用
+            this->erase_node(e);                // 从链表中移除并且减少引用
         }
     }
 
@@ -222,7 +223,7 @@ private:
         // 先--, 再判读0
         // 引用降为0，彻底释放
         if (--e->ref == 0) {
-            assert(!e->in_cache); // 确保不被缓存管理, 这样才能安全调用自定义删除函数. 否则后续缓存会访问到已经被释放的资源
+            assert(!e->in_cache);          // 确保不被缓存管理, 这样才能安全调用自定义删除函数. 否则后续缓存会访问到已经被释放的资源
             this->value_deleter(e->value); // 调用自定义删除器
             delete e;
         } else if (e->in_cache && e->ref == 1) // 如果是从有外部引用变回仅缓存引用
@@ -242,12 +243,12 @@ private:
     }
 
     size_t max_size; // 缓存容量
-    size_t size; // 当前缓存的节点数
+    size_t size;     // 当前缓存的节点数
 
     // 两条双向链表共同维护缓存项的访问顺序和生命周期状态: in_use存放当前正被外部引用的活跃句柄; not_use存放仅由缓存本身持有的可淘汰候选句柄
     list_head not_use{&not_use, &not_use}; // 可淘汰的缓存项. 存放 ref >= 2的句柄. 引用计数为2表示缓存本身持有1个引用, 并且至少有1个外部引用. 只要句柄在此链表中, 就受到保护, 不会被LRU策略淘汰
-    list_head in_use{&in_use, &in_use}; // 正在使用的缓存项. 存放 ref == 1的句柄. 这表示该句柄仅由缓存本身持有, 没有外部引用. 当缓存需要腾出空间时, 优先从此链表尾部淘汰最久未被访问的项
-    rb_root cache_map{nullptr}; // 与标准LRU常用哈希表不同, 红黑树提供了O(log n)的查找效率, 并要求键类型支持 operator< 运算
+    list_head in_use{&in_use, &in_use};    // 正在使用的缓存项. 存放 ref == 1的句柄. 这表示该句柄仅由缓存本身持有, 没有外部引用. 当缓存需要腾出空间时, 优先从此链表尾部淘汰最久未被访问的项
+    rb_root cache_map{nullptr};            // 与标准LRU常用哈希表不同, 红黑树提供了O(log n)的查找效率, 并要求键类型支持 operator< 运算
 
     ValueDeleter value_deleter;
 };

@@ -145,7 +145,9 @@ namespace protocol {
 
         void set_question_name(const std::string &name) {
             char *pname = parser->question.qname;
-            if (pname != nullptr) { free(pname); }
+            if (pname != nullptr) {
+                free(pname);
+            }
             parser->question.qname = strdup(name.c_str());
         }
 

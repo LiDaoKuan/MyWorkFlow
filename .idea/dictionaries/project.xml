@@ -47,6 +47,7 @@
       <w>ioservice</w>
       <w>iovcnt</w>
       <w>iovec</w>
+      <w>linebuf</w>
       <w>linkoff</w>
       <w>linkoffset</w>
       <w>mailb</w>
@@ -65,12 +66,14 @@
       <w>nevents</w>
       <w>newnode</w>
       <w>nleft</w>
+      <w>noack</w>
       <w>noclose</w>
       <w>noreply</w>
       <w>nreceived</w>
       <w>nscount</w>
       <w>nsec</w>
       <w>nthreads</w>
+      <w>numerichost</w>
       <w>packagewrapper</w>
       <w>padde</w>
       <w>pexchange</w>
@@ -103,6 +106,7 @@
       <w>sleeprequest</w>
       <w>sockaddr</w>
       <w>sockfd</w>
+      <w>sslwrapper</w>
       <w>stacksize</w>
       <w>stoped</w>
       <w>strcasecmp</w>
@@ -119,9 +123,14 @@
       <w>toreply</w>
       <w>uriparser</w>
       <w>wfconnection</w>
+      <w>wfdnsresolver</w>
+      <w>wffacilities</w>
+      <w>wffuture</w>
       <w>wfglobal</w>
       <w>wfgraphtask</w>
+      <w>wfhttpserver</w>
       <w>wfns</w>
+      <w>wfserver</w>
       <w>wftask</w>
       <w>wftaskfactory</w>
     </words>

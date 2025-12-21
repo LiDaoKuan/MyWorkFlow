@@ -105,10 +105,10 @@ public:
 
     // new api for children 生命周期钩子 子类可通过重写这些方法在关键节点（初始化成功/失败、发送请求前）插入自定义逻辑
 protected:
-    virtual bool init_success() { return true; } // 初始化成功后的回调, 默认返回 true
-    virtual void init_failed() {} // 初始化失败的回调
+    virtual bool init_success() { return true; }  // 初始化成功后的回调, 默认返回 true
+    virtual void init_failed() {}                 // 初始化失败的回调
     virtual bool check_request() { return true; } // 在发送请求前被调用. 子类可以在此检查参数是否合法
-    virtual WFRouterTask *route(); // 生成并返回一个 WFRouterTask. 决定了如何找到目标服务器（比如是查 DNS 还是查一致性哈希环）
+    virtual WFRouterTask *route();                // 生成并返回一个 WFRouterTask. 决定了如何找到目标服务器（比如是查 DNS 还是查一致性哈希环）
 
     // 一次网络交互结束（无论成功失败）后调用.
     // 如果返回 true, 表示任务彻底结束，回调用户 callback.
@@ -178,9 +178,9 @@ protected:
     // 在重试之前, 必须清空上一次失败或错误的响应对象 (resp), 重新构造一个新的 RESP 对象, 同时保留协议头信息.
     // 这通过显式调用析构函数和 placement new 实现
     void clear_resp() {
-        protocol::ProtocolMessage head(std::move(this->resp)); // 保留原协议头
-        this->resp.~RESP(); // 显式调用析构函数
-        new(&this->resp) RESP; // 使用placement new
+        protocol::ProtocolMessage head(std::move(this->resp));                    // 保留原协议头
+        this->resp.~RESP();                                                       // 显式调用析构函数
+        new(&this->resp) RESP;                                                    // 使用placement new
         *static_cast<protocol::ProtocolMessage *>(&this->resp) = std::move(head); //
     }
 
@@ -190,20 +190,20 @@ protected:
     }
 
 protected:
-    enum TransportType type_; // 传输层协议类型（如 TCP、TCP_SSL、SCTP、UDP）
-    ParsedURI uri_; // 解析后的URI对象
-    std::string info_; // 通常用于存储通过 URI 无法完全表达的额外连接信息, 或者用于区分相同地址下的不同资源(例如数据库的用户名/密码, 或者特定服务的标识字符串). 在负载均衡中可作为 key 使用
-    SSL_CTX *ssl_ctx_; // ssl上下文. 若为空则表示使用非加密通道
-    bool fixed_addr_; // 固定地址模式标志. 若为true, 任务将跳过DNS解析和负载均衡, 直接连接init时指定的ip地址
-    bool fixed_conn_; // 固定连接模式标志. 若为true, 任务尝试复用一个特定的连接(常用于事务性任务或需要绑定连接的场景), 而不是新建或从连接池获取
-    bool redirect_; // 标志位, 表示当前任务是否处于“重定向”状态. 如果发生了重定向, uri_ 会被更新
-    CTX ctx_; // 用户定义的上下文变量(由模板参数决定)
-    int retry_max_; // 最大重试次数
-    int retry_times_; // 当前已重试次数
-    WFNSPolicy *ns_policy_; // 指向名字服务策略(Naming Service Policy)的指针. 指定如何从域名获取目标节点（例如使用 DNS, 还是使用 Consul/Etcd 等服务发现）
-    WFRouterTask *router_task_; // 路由子任务. 这是一个异步任务, 负责执行 DNS 解析和负载均衡选择目标节点的过程
+    enum TransportType type_;                // 传输层协议类型（如 TCP、TCP_SSL、SCTP、UDP）
+    ParsedURI uri_;                          // 解析后的URI对象
+    std::string info_;                       // 通常用于存储通过 URI 无法完全表达的额外连接信息, 或者用于区分相同地址下的不同资源(例如数据库的用户名/密码, 或者特定服务的标识字符串). 在负载均衡中可作为 key 使用
+    SSL_CTX *ssl_ctx_;                       // ssl上下文. 若为空则表示使用非加密通道
+    bool fixed_addr_;                        // 固定地址模式标志. 若为true, 任务将跳过DNS解析和负载均衡, 直接连接init时指定的ip地址
+    bool fixed_conn_;                        // 固定连接模式标志. 若为true, 任务尝试复用一个特定的连接(常用于事务性任务或需要绑定连接的场景), 而不是新建或从连接池获取
+    bool redirect_;                          // 标志位, 表示当前任务是否处于“重定向”状态. 如果发生了重定向, uri_ 会被更新
+    CTX ctx_;                                // 用户定义的上下文变量(由模板参数决定)
+    int retry_max_;                          // 最大重试次数
+    int retry_times_;                        // 当前已重试次数
+    WFNSPolicy *ns_policy_;                  // 指向名字服务策略(Naming Service Policy)的指针. 指定如何从域名获取目标节点（例如使用 DNS, 还是使用 Consul/Etcd 等服务发现）
+    WFRouterTask *router_task_;              // 路由子任务. 这是一个异步任务, 负责执行 DNS 解析和负载均衡选择目标节点的过程
     RouteManager::RouteResult route_result_; // 存储经过路由选择后的目标 IP、Port、Cookie 等信息
-    WFNSTracing tracing_; // 用于名字服务（NS）的追踪数据结构, 可能用于统计 DNS 解析耗时、路由耗时等监控指标
+    WFNSTracing tracing_;                    // 用于名字服务（NS）的追踪数据结构, 可能用于统计 DNS 解析耗时、路由耗时等监控指标
 
 public:
     // 返回 ctx_ 的指针, 允许派生类修改上下文状态
@@ -211,7 +211,7 @@ public:
 
 private:
     void clear_prev_state();
-    //
+    // init()函数的辅助函数
     void init_with_uri();
     // 设置端口. 如果端口已经被设置, 判断端口是否合法. 如果没有设置端口, 则根据协议设置默认端口
     bool set_port();
@@ -224,14 +224,14 @@ private:
 // 清除之前请求的所有状态
 template <class REQ, class RESP, typename CTX>
 void WFComplexClientTask<REQ, RESP, CTX>::clear_prev_state() {
-    this->ns_policy_ = nullptr; // 重置命名服务策略（Naming Service Policy）. 重定向后的新地址（URI）可能属于完全不同的域名或服务。例如, 从 service-a.sogou 重定向到 external.example.com. 之前的域名解析策略（如 Consul 策略）可能不再适用, 需要重新根据新域名获取对应的策略
+    this->ns_policy_ = nullptr;  // 重置命名服务策略（Naming Service Policy）. 重定向后的新地址（URI）可能属于完全不同的域名或服务。例如, 从 service-a.sogou 重定向到 external.example.com. 之前的域名解析策略（如 Consul 策略）可能不再适用, 需要重新根据新域名获取对应的策略
     this->route_result_.clear(); // 清空之前的路由结果
     if (this->tracing_.deleter) {
         this->tracing_.deleter(tracing_.data); // 手动释放追踪数据的内存
         this->tracing_.deleter = nullptr;
     }
     this->tracing_.data = nullptr;
-    this->retry_times_ = 0; // 重置重试次数
+    this->retry_times_ = 0;            // 重置重试次数
     this->state = WFT_STATE_UNDEFINED; // 表示任务尚未开始执行
     this->error = 0;
     this->timeout_reason = TOR_NOT_TIMEOUT; // 重置超时原因. 父类中该变量的默认值也是TOR_NOT_TIMEOUT, 此处与父类保持一致, 避免父类函数读取到错误状态
@@ -274,7 +274,7 @@ bool WFComplexClientTask<REQ, RESP, CTX>::set_port() {
         const int port = atoi(uri_.port);
         // 严格检查端口号是否在 TCP/UDP 有效范围内 (1-65535)
         if (port <= 0 || port > 65535) {
-            this->state = WFT_STATE_TASK_ERROR; // 无效端口时设置任务状态为 WFT_STATE_TASK_ERROR
+            this->state = WFT_STATE_TASK_ERROR;     // 无效端口时设置任务状态为 WFT_STATE_TASK_ERROR
             this->error = WFT_ERR_URI_PORT_INVALID; // this->error = WFT_ERR_URI_PORT_INVALID;
             return false;
         }
@@ -304,7 +304,7 @@ template <class REQ, class RESP, typename CTX>
 void WFComplexClientTask<REQ, RESP, CTX>::init_with_uri() {
     // 重定向处理
     if (redirect_) {
-        clear_prev_state(); // 清除之前的请求的所有状态
+        clear_prev_state();                        // 清除之前的请求的所有状态
         ns_policy_ = WFGlobal::get_dns_resolver(); // 重新获取全局dns解析器
     }
     // URI解析成功
@@ -377,7 +377,7 @@ template <class REQ, class RESP, typename CTX>
 void WFComplexClientTask<REQ, RESP, CTX>::dispatch() {
     switch (this->state) //
     {
-    case WFT_STATE_UNDEFINED: // 未定义状态.
+    case WFT_STATE_UNDEFINED:      // 未定义状态.
         if (this->check_request()) // 检查参数是否合法
         {
             if (this->route_result_.request_object) // 检查是否已有有效的请求对象
@@ -391,7 +391,7 @@ void WFComplexClientTask<REQ, RESP, CTX>::dispatch() {
             }
             // 没有有效的请求对象, 创建路由任务
             router_task_ = this->route();
-            series_of(this)->push_front(this); // 将当前任务放入序列
+            series_of(this)->push_front(this);         // 将当前任务放入序列
             series_of(this)->push_front(router_task_); // 将路由任务放在当前任务之前
         }
     default: break;
@@ -420,8 +420,8 @@ void WFComplexClientTask<REQ, RESP, CTX>::switch_callback(void *t) {
     }
     // 重定向路径
     if (redirect_) {
-        redirect_ = false; // 重定向状态重置
-        clear_resp(); // 清除上一次的响应对象
+        redirect_ = false;   // 重定向状态重置
+        clear_resp();        // 清除上一次的响应对象
         this->target = NULL; //
         series_of(this)->push_front(this);
     } else {
@@ -464,8 +464,8 @@ SubTask *WFComplexClientTask<REQ, RESP, CTX>::done() {
                 route_result_.clear(); // 清除路由结果, 强制重新路由
             }
             this->state = WFT_STATE_UNDEFINED; // 重置任务状态为未定义
-            this->error = 0; // 清除错误码
-            this->timeout_reason = 0; // 清除超时原因
+            this->error = 0;                   // 清除错误码
+            this->timeout_reason = 0;          // 清除超时原因
             retry_times_++;
         }
     }
@@ -605,7 +605,7 @@ protected:
 public:
     __WFGoTask(ExecQueue *queue, Executor *executor, std::function<void ()> &&func) :
         WFGoTask(queue, executor), // 基类初始化
-        go(std::move(func)) // 移动语义避免拷贝
+        go(std::move(func))        // 移动语义避免拷贝
     {}
 };
 
@@ -787,7 +787,7 @@ void __WFTimedThreadTask<INPUT, OUTPUT>::dispatch() {
     timer->user_data = this; // 将任务对象的指针传递给定时器, 方便定时器在超时时通过指针访问任务对象
 
     this->ExecRequest::dispatch(); // 将任务交给线程池
-    timer->start(); // 启动定时器. 如果先启动定时器, 可能在任务准备完成前就超时
+    timer->start();                // 启动定时器. 如果先启动定时器, 可能在任务准备完成前就超时
 }
 
 template <class INPUT, class OUTPUT>

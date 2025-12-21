@@ -1029,12 +1029,12 @@ struct __guard_node *__NamedGuardMap::release(const std::string &name) {
     return node;
 }
 
-WFConditional *WFTaskFactory::create_guard(const std::string &name, SubTask *task) {
-    return __guard_map.create(name, task);
+WFConditional *WFTaskFactory::create_guard(const std::string &resource_name, SubTask *task) {
+    return __guard_map.create(resource_name, task);
 }
 
-WFConditional *WFTaskFactory::create_guard(const std::string &name, SubTask *task, void **msgbuf) {
-    return __guard_map.create(name, task, msgbuf);
+WFConditional *WFTaskFactory::create_guard(const std::string &resource_name, SubTask *task, void **msgbuf) {
+    return __guard_map.create(resource_name, task, msgbuf);
 }
 
 int WFTaskFactory::release_guard(const std::string &name, void *msg) {

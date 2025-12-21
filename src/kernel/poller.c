@@ -1434,7 +1434,7 @@ int poller_del(int fd, poller_t *poller) {
         poller->callback((struct poller_result *)node, poller->context);
     }
     // 如果 poller 仍在运行，清理工作将交由 poller 线程自身完成
-    // poller 线程会在其事件循环中读取管道消息，收到这个节点指针后，再在适当的时机（例如，在 __poller_handle_pipe函数中）进行资源释放和回调
+    // poller 线程会在其事件循环中读取管道消息, 收到这个节点指针后, 再在适当的时机（例如, 在 __poller_handle_pipe函数中）进行资源释放和回调
     // 这种设计避免了在持有锁的情况下执行可能复杂的回调函数，也符合异步框架的设计哲学
     return -!node;
 }

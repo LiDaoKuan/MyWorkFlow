@@ -35,7 +35,7 @@ int WFNetworkTask<REQ, RESP>::get_peer_addr(sockaddr *addr, socklen_t *addrlen) 
         // 比较调用者提供的缓冲区大小 (*addrlen) 和实际需要的地址长度 (len)
         if (*addrlen >= len) {
             memcpy(addr, p, len); // 复制地址数据
-            *addrlen = len; // 回传实际地址长度
+            *addrlen = len;       // 回传实际地址长度
             return 0;
         }
         errno = ENOBUFS;
@@ -67,8 +67,10 @@ protected:
     // 获取底层连接对象. 用于在需要时直接操作网络连接
     [[nodiscard]] WFConnection *get_connection() const override {
         if (this->target) {
-            WFConnection *conn = this->CommSession::get_connect();
-            if (conn) { return conn; }
+            CommConnection *conn = this->CommSession::get_connect();
+            if (conn) {
+                return static_cast<WFConnection *>(conn);
+            }
         }
         errno = ENOTCONN;
         return nullptr;
@@ -178,7 +180,7 @@ protected:
         // Processor类的核心作用是在一个安全的上下文中执行用户处理函数 process，并在执行后立即禁用对底层连接的访问（this->task = nullptr）
         void dispatch() override {
             this->process(this->task); // 执行用户处理函数
-            this->task = nullptr; /* As a flag. get_conneciton() disabled. */
+            this->task = nullptr;      /* As a flag. get_conneciton() disabled. */
             this->subtask_done();
         }
 
@@ -232,7 +234,7 @@ void WFServerTask<REQ, RESP>::handle(int state, int error) {
         this->target = this->get_target(); // 获取与此任务相关的通信目标
         // 创建一个 Series对象(一个特殊的系列工作流), 并将当前任务作为其最后一个任务.
         // 这个Series对象会管理任务的生命周期, 确保在系列中的所有处理步骤完成后, 才进行最终的回复和资源清理
-        new Series(this); // 此处不算内存泄漏, 因为该对象的构造函数会将该对象放进任务流中. 在执行完成后框架会调用该对象的析构函数.
+        new Series(this);           // 此处不算内存泄漏, 因为该对象的构造函数会将该对象放进任务流中. 在执行完成后框架会调用该对象的析构函数.
         this->processor.dispatch(); // 执行用户的业务逻辑
     } else if (this->state == WFT_STATE_TOREPLY) {
         // 当传入的state不是TOREPLY, 但任务当前状态是TOREPLY时, 通常意味着在处理过程中发生了错误(如超时或连接中断)

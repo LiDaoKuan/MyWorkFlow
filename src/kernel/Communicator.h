@@ -86,12 +86,12 @@ public:
 private:
     sockaddr *addr;
     socklen_t addrlen;
-    int connect_timeout; // 连接超时时间
-    int response_timeout; // 等待响应超时时间
+    int connect_timeout;     // 连接超时时间
+    int response_timeout;    // 等待响应超时时间
     int ssl_connect_timeout; //SSL上下文，用于加密连接。包含SSL握手超时
-    SSL_CTX *ssl_ctx; // SSL上下文，用于加密连接
+    SSL_CTX *ssl_ctx;        // SSL上下文，用于加密连接
 
-    list_head idle_list; // 空闲连接链表. 用于实现连接池, 管理空闲的持久连接以提升性能.
+    list_head idle_list;   // 空闲连接链表. 用于实现连接池, 管理空闲的持久连接以提升性能.
     pthread_mutex_t mutex; // 互斥锁
     friend class CommServiceTarget;
     friend class Communicator;
@@ -166,10 +166,10 @@ private:
      * 这些函数返回 -1 表示禁用超时，返回 0 表示使用默认值，返回正数表示自定义超时毫秒数 */
 
     // 控制超时策略, 管理连接生命周期
-    virtual int send_timeout() { return -1; } /* 控制发送数据过程的超时, 防止因网络延迟或对端无响应导致的连接长期挂起, 默认返回-1, 即: 永不超时 */
-    virtual int receive_timeout() { return -1; } /* 控制接收数据过程的超时, 防止因网络延迟或对端无响应导致的连接长期挂起 */
+    virtual int send_timeout() { return -1; }      /* 控制发送数据过程的超时, 防止因网络延迟或对端无响应导致的连接长期挂起, 默认返回-1, 即: 永不超时 */
+    virtual int receive_timeout() { return -1; }   /* 控制接收数据过程的超时, 防止因网络延迟或对端无响应导致的连接长期挂起 */
     virtual int keep_alive_timeout() { return 0; } /* 管理连接空闲时间，是实现 HTTP Keep-Alive 或数据库连接池等长连接功能的关键 */
-    virtual int first_timeout() { return 0; } /* 控制连接建立或首包发送的超时, 对于快速发现不可达的服务端至关重要 */
+    virtual int first_timeout() { return 0; }      /* 控制连接建立或首包发送的超时, 对于快速发现不可达的服务端至关重要 */
 
     /* handle方法是整个异步框架的 回调入口, 是 “模板方法模式” 的体现.
      * 当底层的 I/O 操作完成(如连接建立成功、数据接收完毕、超时发生或出错)时, WorkFlow 的 Communicator 会调用此函数
@@ -190,14 +190,14 @@ protected:
 
 private:
     CommTarget *target;
-    CommConnection *conn; // 代表底层的网络连接
+    CommConnection *conn;    // 代表底层的网络连接
     CommMessageOut *msg_out; // 指向当前会话使用的消息处理器
-    CommMessageIn *msg_in; // 指向当前会话使用的消息处理器
-    long long seq; // 序列号, 用于匹配请求和响应, 尤其在多路复用的连接中非常重要
+    CommMessageIn *msg_in;   // 指向当前会话使用的消息处理器
+    long long seq;           // 序列号, 用于匹配请求和响应, 尤其在多路复用的连接中非常重要
 
     struct timespec begin_time; // 操作的开始时间
-    int timeout; // 操作的超时阀值(毫秒？)
-    int passive; // 当设置为 1 时, 表示该会话是由服务端被动接受的连接, 这将影响框架内部对其生命周期管理的策略
+    int timeout;                // 操作的超时阀值(毫秒？)
+    int passive;                // 当设置为 1 时, 表示该会话是由服务端被动接受的连接, 这将影响框架内部对其生命周期管理的策略
 
 public:
     CommSession() { this->passive = 0; }
@@ -211,7 +211,7 @@ class CommService {
 public:
     // 服务端地址绑定、参数配置、资源初始化
     int init(const sockaddr *_bind_addr, socklen_t _addrlen, int _listen_timeout, int response_timeout);
-    void deinit(); // 释放资源
+    void deinit();      // 释放资源
     int drain(int max); // 优雅关闭，排空现有连接
 
     void get_addr(const sockaddr **addr_, socklen_t *addrlen_) const {
@@ -252,10 +252,10 @@ private:
 private:
     sockaddr *bind_addr;
     socklen_t addrlen;
-    int listen_timeout; // 控制监听套接字接受新连接的等待时间，影响服务启动的容忍度
-    int response_timeout; // 定义服务端发出响应后等待客户端确认或后续操作的最大时间，影响请求完整周期
+    int listen_timeout;     // 控制监听套接字接受新连接的等待时间，影响服务启动的容忍度
+    int response_timeout;   // 定义服务端发出响应后等待客户端确认或后续操作的最大时间，影响请求完整周期
     int ssl_accept_timeout; // 限制SSL/TLS握手阶段的持续时间，保护服务端资源
-    SSL_CTX *ssl_ctx; // 存储SSL库的配置上下文（如证书、私钥、协议版本），是所有SSL连接的基础
+    SSL_CTX *ssl_ctx;       // 存储SSL库的配置上下文（如证书、私钥、协议版本），是所有SSL连接的基础
 
     int reliable; // 标志位，用于启用TCP保活机制，以检测和清理失效连接??? or 用于控制可靠关闭和非可靠关闭
     int listen_fd;
@@ -265,7 +265,7 @@ private:
     pthread_mutex_t mutex;
 
 public:
-    virtual ~CommService() = 0;
+    virtual ~CommService() = default;
     friend class CommServiceTarget;
     friend class Communicator;
 };
@@ -284,10 +284,10 @@ private:
 
 private:
     void *timer; // 指向关联的定时器对象. 生命周期绑定, 确保休眠会话与定时器同生共死
-    int index; // 在管理器中的索引/标识???
+    int index;   // 在管理器中的索引/标识???
 
 public:
-    virtual ~SleepSession();
+    virtual ~SleepSession() = default;
     friend class Communicator;
 };
 

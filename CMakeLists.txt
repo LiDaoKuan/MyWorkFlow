@@ -34,6 +34,7 @@ set(INCLUDE_HEADERS
         ${INCLUDE_KERNEL_HEADERS}
         src/protocol/ProtocolMessage.h
         src/protocol/PackageWrapper.h
+        src/protocol/SSLWrapper.h
         src/protocol/HttpMessage.h
         src/protocol/http_parser.h
         src/protocol/HttpUtil.h
@@ -61,10 +62,18 @@ set(INCLUDE_HEADERS
         src/manager/EndpointParams.h
         src/manager/RouteManager.h
         src/manager/WFGlobal.h
+        src/manager/WFFacilities.h
+        src/manager/WFFacilities.inl
+        src/manager/WFFuture.h
 
         src/nameservice/WFNameService.h
+        src/nameservice/WFDnsResolver.h
 
         src/client/WFDnsClient.h
+
+        src/server/WFServer.h
+        src/server/WFHttpServer.h
+
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/src/kernel)
@@ -73,10 +82,10 @@ include_directories(${CMAKE_SOURCE_DIR}/src/factory)
 include_directories(${CMAKE_SOURCE_DIR}/src/util)
 include_directories(${CMAKE_SOURCE_DIR}/src/manager)
 include_directories(${CMAKE_SOURCE_DIR}/src/nameservice)
+include_directories(${CMAKE_SOURCE_DIR}/src/client)
+include_directories(${CMAKE_SOURCE_DIR}/src/server)
 
-add_executable(myWorkFlow main.cpp
-        ${INCLUDE_HEADERS}
-        ${PLATFORM_IO_SOURCE}
+set(SRC
         src/kernel/SubTask.cpp
         src/kernel/poller.c
         src/kernel/rbtree.c
@@ -94,6 +103,7 @@ add_executable(myWorkFlow main.cpp
         src/protocol/HttpUtil.cpp
         src/protocol/dns_parser.c
         src/protocol/DnsMessage.cpp
+        src/protocol/SSLWrapper.cpp
 
         src/util/URIParser.cpp
         src/util/StringUtil.cpp
@@ -102,14 +112,26 @@ add_executable(myWorkFlow main.cpp
         src/factory/Workflow.cpp
         src/factory/WFTaskFactory.cpp
         src/factory/WFGraphTask.cpp
+        src/factory/FileTaskImpl.cpp
 
         src/manager/RouteManager.cpp
         src/manager/WFGlobal.cpp
         src/manager/DnsCache.cpp
+        src/nameservice/WFDnsResolver.cpp
 
         src/nameservice/WFNameService.cpp
 
         src/client/WFDnsClient.cpp
+
+        src/server/WFServer.cpp
+        src/factory/HttpTaskImpl.cpp
+        src/factory/DnsTaskImpl.cpp
+)
+
+add_executable(myWorkFlow main.cpp
+        ${INCLUDE_HEADERS}
+        ${PLATFORM_IO_SOURCE}
+        ${SRC}
 )
 
 find_package(OpenSSL REQUIRED)

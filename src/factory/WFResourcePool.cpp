@@ -71,14 +71,14 @@ void RPConditional::dispatch() {
     this->WFConditional::dispatch(); // 调用基类方法, 提交任务使其继续执行
 }
 
-// 资源获取. 暂时没有任何调用方？？？？
+// 资源获取. 暂时没有任何调用方？？？
 WFConditional *WFResourcePool::get(SubTask *task, void **resbuf) {
-    return new RPConditional(task, resbuf, &this->data_); // 返回条件任务, 由外部启动？？？
+    return new RPConditional(task, resbuf, &this->data_); // 返回条件任务, 由外部启动或者由外部集成到框架中由框架管理
 }
 
-// 资源获取. 暂时没有任何调用方？？？？
+// 资源获取.
 WFConditional *WFResourcePool::get(SubTask *task) {
-    return new RPConditional(task, &this->data_); // 返回条件任务, 由外部启动？？？
+    return new RPConditional(task, &this->data_); // 返回条件任务, 由外部启动或者由外部集成到框架中由框架管理
 }
 
 void WFResourcePool::create(size_t n) {
@@ -108,7 +108,7 @@ void WFResourcePool::post(void *res) {
     // 首先增加计数器, 然后检查新值. 如果新值 <= 0, 说明递增前有任务在等待(因为递增后仍非正), 需要立即唤醒一个任务
     if (++data->value <= 0) {
         cond = list_entry(data->wait_list.next, RPConditional, list); // 取出队列首任务
-        list_del(data->wait_list.next); // 从队列中移除队首
+        list_del(data->wait_list.next);                               // 从队列中移除队首
     } else {
         cond = nullptr;
         this->push(res); // 将资源放回池中

@@ -57,7 +57,7 @@ private:
         const struct sockaddr *addr;
         socklen_t addrlen;
 
-        this->get_addr(&addr, &addrlen); // 通过 this->get_addr(&addr, &addrlen) 获取基类中设置的地址族(如IPv4的 AF_INET或IPv6的 AF_INET6), 确保套接字与预设地址兼容
+        this->get_addr(&addr, &addrlen);               // 通过 this->get_addr(&addr, &addrlen) 获取基类中设置的地址族(如IPv4的 AF_INET或IPv6的 AF_INET6), 确保套接字与预设地址兼容
         return socket(addr->sa_family, SOCK_DGRAM, 0); // 使用 SOCK_DGRAM 参数创建数据报套接字, 这是UDP协议的典型特征
     }
 };
@@ -147,29 +147,29 @@ public:
 // 集中定义创建一条路由所需的所有参数, 如传输协议、目标地址、SSL上下文、超时设置等
 struct RouteParams {
     enum TransportType transport_type; // 指定传输层协议(如TCP、UDP或SCTP). 这是路由的基础类型
-    const struct addrinfo *addrinfo; // 指向一个由DNS解析得到的地址信息链表, 包含一个或多个目标服务器的IP地址和端口.
-    uint64_t key; // 用于唯一标识此路由条目的缓存键, 通常由目标主机名、端口和协议类型等信息哈希生成.
-    SSL_CTX *ssl_ctx; // SSL/TLS上下文指针. 如果连接需要使用TLS加密, 此字段必须有效; 否则为nullptr.
-    size_t max_connections; // 允许到目标服务器的最大并发连接数, 用于连接池管理, 防止过度消耗服务器资源
-    int connect_timeout; // 建立TCP连接的超时时间 (通常以毫秒为单位)
-    int response_timeout; // 等待服务器响应的超时时间.
-    int ssl_connect_timeout; // 完成SSL/TLS握手的超时时间, 可能长于普通的连接超时
-    bool use_tls_sni; // 是否在TLS握手时启用 SNI (服务器名称指示) 扩展. 对于虚拟主机场景, 此选项必须开启.
-    const std::string &hostname; // 要访问的目标主机名. 用于SNI扩展或HTTP请求头中的Host字段
+    const struct addrinfo *addrinfo;   // 指向一个由DNS解析得到的地址信息链表, 包含一个或多个目标服务器的IP地址和端口.
+    uint64_t key;                      // 用于唯一标识此路由条目的缓存键, 通常由目标主机名、端口和协议类型等信息哈希生成.
+    SSL_CTX *ssl_ctx;                  // SSL/TLS上下文指针. 如果连接需要使用TLS加密, 此字段必须有效; 否则为nullptr.
+    size_t max_connections;            // 允许到目标服务器的最大并发连接数, 用于连接池管理, 防止过度消耗服务器资源
+    int connect_timeout;               // 建立TCP连接的超时时间 (通常以毫秒为单位)
+    int response_timeout;              // 等待服务器响应的超时时间.
+    int ssl_connect_timeout;           // 完成SSL/TLS握手的超时时间, 可能长于普通的连接超时
+    bool use_tls_sni;                  // 是否在TLS握手时启用 SNI (服务器名称指示) 扩展. 对于虚拟主机场景, 此选项必须开启.
+    const std::string &hostname;       // 要访问的目标主机名. 用于SNI扩展或HTTP请求头中的Host字段
 };
 
 // 路由条目管理器: 保存状态，管理路由条目的生命周期、多个目标之间的负载均衡以及熔断状态
 class RouteResultEntry {
 public:
-    rb_node rb{}; // 用于将本条目插入到红黑树中, 实现基于key的高效查找、插入和删除
+    rb_node rb{};                    // 用于将本条目插入到红黑树中, 实现基于key的高效查找、插入和删除
     CommSchedObject *request_object; // 核心调度对象. 可能是单个CommSchedTarget, 也可能是一个负责负载均衡的CommSchedGroup
-    CommSchedGroup *group; // 当addrinfo包含多个地址时, 此指针指向管理这些目标的负载均衡组
+    CommSchedGroup *group;           // 当addrinfo包含多个地址时, 此指针指向管理这些目标的负载均衡组
     std::mutex mutex;
     std::vector<RouteManager::RouteTarget *> targets; // 存储由此条目管理的所有具体目标(RouteTarget对象)
-    list_head breaker_list; // 一个链表头, 链接了当前所有处于熔断状态(不可用)的目标
-    uint64_t key{0}; // 与此条目关联的缓存, 与RouteParams中的key对应
-    int nleft; // 当前可用的目标数量(未熔断的目标数)
-    int nbreak; // 当前不可用的目标数量(已熔断的目标数)
+    list_head breaker_list;                           // 一个链表头, 链接了当前所有处于熔断状态(不可用)的目标
+    uint64_t key{0};                                  // 与此条目关联的缓存, 与RouteParams中的key对应
+    int nleft;                                        // 当前可用的目标数量(未熔断的目标数)
+    int nbreak;                                       // 当前不可用的目标数量(已熔断的目标数)
 
     RouteResultEntry() :
         request_object(nullptr), group(nullptr), nleft(0), nbreak(0),
@@ -192,8 +192,8 @@ private:
 // 记录“哪个目标”出了故障以及“何时可尝试恢复”
 struct __breaker_node {
     RouteManager::RouteTarget *target; // 出现故障的目标
-    int64_t timeout; // 预计尝试修复的时间点
-    struct list_head breaker_list; // 用于将节点链接在熔断列表中
+    int64_t timeout;                   // 预计尝试修复的时间点
+    struct list_head breaker_list;     // 用于将节点链接在熔断列表中
 };
 
 // 根据传入的params和addr构建target
@@ -253,8 +253,8 @@ int RouteResultEntry::init(const struct RouteParams *params) {
         target = RouteResultEntry::create_target(params, addr); // 创建对应的 RouteTarget 对象
         if (target) {
             this->targets.push_back(target); // 将创建的 RouteTarget 对象添加到vector中
-            this->request_object = target; // 设置请求对象
-            this->key = params->key; // 记录唯一key
+            this->request_object = target;   // 设置请求对象
+            this->key = params->key;         // 记录唯一key
             return 0;
         }
         return -1;
@@ -265,7 +265,7 @@ int RouteResultEntry::init(const struct RouteParams *params) {
     if (this->group->init() >= 0) {
         if (this->add_group_targets(params) >= 0) {
             this->request_object = this->group; // 设置请求对象
-            this->key = params->key; // 记录唯一key
+            this->key = params->key;            // 记录唯一key
             return 0;
         }
         // 向调度组添加调度目标时出错, 销毁调度组
@@ -285,7 +285,7 @@ int RouteResultEntry::add_group_targets(const struct RouteParams *params) {
         if (target) {
             if (this->group->add(target) >= 0) {
                 this->targets.push_back(target); // 将目标也添加到vector中
-                this->nleft++; // 可用目标数量+1
+                this->nleft++;                   // 可用目标数量+1
                 continue;
             }
             // 向调度组添加目标失败, 销毁目标
@@ -354,7 +354,7 @@ void RouteResultEntry::notify_unavailable(RouteManager::RouteTarget *target) {
     auto *node = new __breaker_node;
 
     node->target = target;
-    node->timeout = GET_CURRENT_SECOND + MTTR_SECOND; // 计算恢复时间点
+    node->timeout = GET_CURRENT_SECOND + MTTR_SECOND;        // 计算恢复时间点
     list_add_tail(&node->breaker_list, &this->breaker_list); // 加入熔断链表
     // 更新状态计数器
     this->nbreak++;
@@ -388,7 +388,7 @@ void RouteResultEntry::check_breaker() {
 
     list_head *pos, *tmp;
     __breaker_node *node;
-    int errno_bak = errno; // 备份错误码
+    int errno_bak = errno;                 // 备份错误码
     int64_t cur_time = GET_CURRENT_SECOND; // 获取当前时间
     std::lock_guard<std::mutex> lock(this->mutex);
 
@@ -402,8 +402,8 @@ void RouteResultEntry::check_breaker() {
                 errno = errno_bak; // 恢复失败, 但是还原错误码, 确保调用方不被干扰
             }
 
-            list_del(pos); // 从熔断链表中删除被恢复的节点
-            delete node; // 释放节点空间
+            list_del(pos);  // 从熔断链表中删除被恢复的节点
+            delete node;    // 释放节点空间
             this->nbreak--; // 熔断数量-1
         }
     }
@@ -436,8 +436,8 @@ static uint64_t fnv_hash(const unsigned char *data, size_t size) {
     // 该算法通过交替进行异或和乘法操作, 对输入数据的每个字节进行扩散, 确保即使微小的输入变化也会产生显著不同的哈希值
     while (size) {
         hash ^= static_cast<const uint64_t>(*(data++)); // 先异或当前字节. 注意后置++是先取值, 再进行++！！！
-        hash *= 1099511628211ULL; // 再乘以质数. 1099511628211ULL - 精心选择的质数, 提供良好的扩散特性
-        size--; // 剩余字节数
+        hash *= 1099511628211ULL;                       // 再乘以质数. 1099511628211ULL - 精心选择的质数, 提供良好的扩散特性
+        size--;                                         // 剩余字节数
     }
 
     return hash;
@@ -505,13 +505,13 @@ RouteManager::~RouteManager() {
     // 只要红黑树不为空就继续清理
     while (cache_.rb_node) {
         entry = rb_entry(cache_.rb_node, RouteResultEntry, rb); // 获取rb_node所在的RouteResultEntry
-        rb_erase(cache_.rb_node, &cache_); // 从红黑树中删除rb_node
-        entry->deinit(); // 销毁rb_node所在的entry
+        rb_erase(cache_.rb_node, &cache_);                      // 从红黑树中删除rb_node
+        entry->deinit();                                        // 销毁rb_node所在的entry
         delete entry;
     }
 }
 
-// 根据连接参数来查找或创建路由条目
+// 根据连接参数来查找或创建路由条目. 结果通过最后一个参数 RouteResult& 传出
 int RouteManager::get(enum TransportType type, const struct addrinfo *addrinfo, const std::string &other_info,
                       const struct EndpointParams *ep_params, const std::string &hostname, SSL_CTX *ssl_ctx,
                       RouteResult &result) {
