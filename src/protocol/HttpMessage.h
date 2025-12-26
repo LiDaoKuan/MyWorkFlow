@@ -41,7 +41,8 @@ namespace protocol {
 
     class HttpMessage : public ProtocolMessage {
     public:
-        explicit HttpMessage(bool is_resp) : parser(new http_parser_t) {
+        explicit HttpMessage(bool is_resp) :
+            parser(new http_parser_t) {
             http_parser_init(is_resp, this->parser);
             INIT_LIST_HEAD(&this->output_body);
             this->output_body_size = 0;
@@ -176,6 +177,7 @@ namespace protocol {
             return is_http_parser_header_complete(this->parser);
         }
 
+        // 消息中是否包含 Connection 头部
         [[nodiscard]] bool has_connection_header() const {
             return http_parser_has_connection(this->parser);
         }
@@ -204,21 +206,23 @@ namespace protocol {
 
     protected:
         http_parser_t *parser; // 负责解析传入的原始HTTP数据，并存储解析出的状态和信息(如头部、版本)
-        size_t cur_size; // 动态记录当前已累积或准备处理的数据总量. 是一个反映当前进度的“快照”
+        size_t cur_size;       // 动态记录当前已累积或准备处理的数据总量. 是一个反映当前进度的“快照”
 
     private:
         list_head *combine_from(list_head *pos, size_t size);
 
     private:
         // 使用一个链表来管理可能由多个不连续数据块组成的完整HTTP消息体, 非常适合流式处理大量数据或多次追加数据的场景
-        list_head output_body; // 以链表形式管理待发送的消息体数据块，支持零拷贝操作
+        list_head output_body;   // 以链表形式管理待发送的消息体数据块，支持零拷贝操作
         size_t output_body_size; // 记录链表中所存数据的总长度（即: 当前消息体的总长度）, 用于生成 Content-Length头部
     };
 
     // 处理 HTTP 请求报文
     class HttpRequest : public HttpMessage {
     public:
-        HttpRequest() : HttpMessage(false) {}
+        HttpRequest() :
+            HttpMessage(false) {}
+
         HttpRequest(HttpRequest &&http_req) = default;
         HttpRequest &operator =(HttpRequest &&req) = default;
 
@@ -276,7 +280,9 @@ namespace protocol {
     // 处理 HTTP 响应报文
     class HttpResponse : public HttpMessage {
     public:
-        HttpResponse() : HttpMessage(true) {}
+        HttpResponse() :
+            HttpMessage(true) {}
+
         HttpResponse(HttpResponse &&resp) = default;
         HttpResponse &operator =(HttpResponse &&resp) = default;
 
@@ -368,9 +374,9 @@ namespace protocol {
 
     private:
         char chunk_line[32]{}; // 块大小行缓冲区: 用于临时存储每个数据块开头的长度信息(十六进制字符串)
-        void *chunk_data; // 块数据指针: 指向当前正在处理的数据块内容
-        size_t chunk_size{0}; // 当前块大小: 记录当前数据块的实际长度(不包括块头尾的\r\n)
-        size_t nreceived; // 已经成功接收并拷贝到chunk_data的字节数
+        void *chunk_data;      // 块数据指针: 指向当前正在处理的数据块内容
+        size_t chunk_size{0};  // 当前块大小: 记录当前数据块的实际长度(不包括块头尾的\r\n)
+        size_t nreceived;      // 已经成功接收并拷贝到chunk_data的字节数
     };
 }
 #endif //MYWORKFLOW_HTTPMESSAGE_H

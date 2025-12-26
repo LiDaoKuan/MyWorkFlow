@@ -40,7 +40,7 @@ using dns_callback_t = std::function<void (WFDnsTask *)>;
 // 标准文件I/O参数. 支持随机访问I/O
 struct FileIOArgs {
     int fd;
-    void *buf; // 数据缓冲区指针
+    void *buf;    // 数据缓冲区指针
     size_t count; // 要读写的数据长度（字节）
     off_t offset; // 文件偏移量
 };
@@ -49,8 +49,8 @@ struct FileIOArgs {
 struct FileVIOArgs {
     int fd;
     const struct iovec *iov; // 缓冲区数组指针
-    int iovcnt; // 数组大小
-    off_t offset; // 文件偏移量
+    int iovcnt;              // 数组大小
+    off_t offset;            // 文件偏移量
 };
 
 // 文件同步参数. 对应 fsync() 或 fdatasync() 系统调用, 用于确保数据持久化到存储设备
@@ -92,12 +92,12 @@ class WFTaskFactory {
 public:
     // 创建http任务
     static WFHttpTask *create_http_task(const std::string &url, int redirect_max, int retry_max, http_callback_t callback);
-    // 创建http任务
+    // 创建http任务. 通过已解析的URI
     static WFHttpTask *create_http_task(const ParsedURI &uri, int redirect_max, int retry_max, http_callback_t callback);
-    // 创建http任务
+    // 创建代理http任务
     static WFHttpTask *create_http_task(const std::string &url, const std::string &proxy_url, int redirect_max,
                                         int retry_max, http_callback_t callback);
-    // 创建http任务
+    // 创建代理http任务. 通过已解析的URI
     static WFHttpTask *create_http_task(const ParsedURI &uri, const ParsedURI &proxy_uri, int redirect_max,
                                         int retry_max, http_callback_t callback);
 

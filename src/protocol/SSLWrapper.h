@@ -27,17 +27,24 @@
 #include "ProtocolMessage.h"
 
 namespace protocol {
+    /**
+     * @brief   SSL/TLS握手协议处理器
+     * @details 专门处理SSL/TLS连接建立阶段的协议交互
+     *          作为独立的ProtocolMessage, 管理完整的握手流程
+     * @note    生命周期通常很短, 仅存在于连接建立阶段
+     * @warning 非线程安全, 应由单个连接线程独占使用
+     */
     class SSLHandshaker : public ProtocolMessage {
     public:
         int encode(struct iovec vectors[], int max) override;
         int append(const void *buf, size_t *size) override;
 
     protected:
-        SSL *ssl;
+        SSL *ssl; // OpenSSL库的SSL上下文指针, 管理握手状态机
 
     public:
         explicit SSLHandshaker(SSL *ssl) {
-            this->ssl = ssl;
+            this->ssl = ssl; // 传入的必须是已初始化的SSL上下文
         }
 
     public:
@@ -61,7 +68,8 @@ namespace protocol {
 
     public:
         SSLWrapper(ProtocolMessage *message, SSL *ssl) :
-            ProtocolWrapper(message) {
+            ProtocolWrapper(message) // 建立双向连接: wrapper持有message, message的wrapper指针指向本对象
+        {
             this->ssl = ssl;
         }
 
@@ -70,6 +78,13 @@ namespace protocol {
         SSLWrapper &operator =(SSLWrapper &&wrapper) = default;
     };
 
+    /**
+     * @brief   服务器端SSL专用包装器
+     * @details 专门处理服务器端SSL连接的特殊需求
+     *          如客户端证书验证、SNI(服务器名称指示)处理等
+     * @note    与客户端SSLWrapper的主要差异在握手和认证阶段
+     *          数据传输阶段行为基本相同
+     */
     class ServerSSLWrapper : public SSLWrapper {
     protected:
         int append(const void *buf, size_t *size) override;

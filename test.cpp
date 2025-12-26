@@ -42,7 +42,6 @@ namespace TEST1 {
         ~Child() override = default;
     };
 
-
     void Test() {
         Father *b = new Child();
         b->func();
@@ -140,13 +139,20 @@ namespace TEST5 {
     }
 };
 
-struct Test{
-    int a = 0;
-    char name[18];
+class Test {
+private:
+    int a = 123;
+    int b = 300;
+
+    virtual int func() {
+        return 0;
+    }
 };
 
 int main() {
-    Test* test = nullptr;
-    std::cout<<"Test.a: "<<sizeof(nullptr)<<std::endl;
+    Test test;
+    void *p = &test;
+    std::cout << "a: " << *static_cast<int *>(p + offsetof(Test, a)) << std::endl;
+    std::cout << "b: " << *static_cast<int *>(p + offsetof(Test, b)) << std::endl;
     return 0;
 }

@@ -25,7 +25,6 @@
 */
 
 #include "rbtree.h"
-
 #include <bits/posix2_lim.h>
 
 /* 对node节点和node->right节点进行左旋 */

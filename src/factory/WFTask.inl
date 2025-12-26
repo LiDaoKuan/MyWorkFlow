@@ -55,8 +55,9 @@ protected:
         /* By using prepare function, users can modify the request after
          * the connection is established. */
         // 如果设置了prepare回调函数, 则执行
-        if (this->prepare) { this->prepare(this); }
-
+        if (this->prepare) {
+            this->prepare(this);
+        }
         return &this->req;
     }
 

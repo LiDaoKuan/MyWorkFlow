@@ -99,7 +99,7 @@ namespace protocol {
 
     private:
         Attachment *attachment;
-        ProtocolMessage *wrapper; // 支持消息被装饰或包装，实现功能增强（如加密、压缩）
+        ProtocolMessage *wrapper; // 支持消息被装饰或包装, 实现功能增强（如加密、压缩）
 
         friend class ProtocolWrapper;
     };
