@@ -345,7 +345,7 @@ private:
     __mpoller *mpoller{nullptr};
     __msgqueue *msgqueue{nullptr};
     threadpool *thrdpool{nullptr};
-    int stop_flag = 0;
+    int stop_flag;
 
     CommEventHandler *event_handler{nullptr}; // 用于用户自定义事件处理器
 

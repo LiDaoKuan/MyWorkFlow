@@ -175,10 +175,10 @@ public:
     static WFTimerTask *create_timer_task(unsigned int microseconds, timer_callback_t callback);
 
 public:
-    /**创建匿名计数器
-     * Create an unnamed counter. Call counter->count() directly.
-     * NOTE: never call count() exceeding target_value. 、
-     * 计数操作需通过返回的 WFCounterTask 对象指针直接调用 count().
+    /**创建匿名计数器\n
+     * Create an unnamed counter. Call counter->count() directly.\n
+     * NOTE: never call count() exceeding target_value. \n
+     * 计数操作需通过返回的 WFCounterTask 对象指针直接调用 count(). \n
      * 严禁调用 count() 的次数超过 target_value, 否则可能导致程序未定义行为 */
     static WFCounterTask *create_counter_task(unsigned int target_value, counter_callback_t callback) {
         return new WFCounterTask(target_value, std::move(callback));

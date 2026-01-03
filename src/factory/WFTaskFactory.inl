@@ -89,6 +89,10 @@ protected:
     using task_callback_t = std::function<void (WFNetworkTask<REQ, RESP> *)>;
 
 public:
+    /**
+     * @param retry_max 重试策略
+     * @param cb 完成回调
+     */
     WFComplexClientTask(const int retry_max, task_callback_t &&cb) :
         WFClientTask<REQ, RESP>(NULL, WFGlobal::get_scheduler(), std::move(cb)) //
     {
@@ -172,6 +176,7 @@ protected:
 
 protected:
     void dispatch() override;
+
     SubTask *done() override;
 
     // 用于重试机制
@@ -211,12 +216,16 @@ public:
 
 private:
     void clear_prev_state();
+
     // init()函数的辅助函数
     void init_with_uri();
+
     // 设置端口. 如果端口已经被设置, 判断端口是否合法. 如果没有设置端口, 则根据协议设置默认端口
     bool set_port();
+
     // 路由回调函数
     void router_callback(void *t);
+
     // 任务生命周期的终结阶段处理的回调函数. 参数t是为了和框架其他回调函数统一, 函数内部并未使用
     void switch_callback(void *t);
 };
@@ -613,6 +622,7 @@ public:
 class __WFTimedGoTask : public __WFGoTask {
 protected:
     void dispatch() override;
+
     SubTask *done() override;
 
 protected:
@@ -753,6 +763,7 @@ template <class INPUT, class OUTPUT>
 class __WFTimedThreadTask : public __WFThreadTask<INPUT, OUTPUT> {
 protected:
     void dispatch() override;
+
     SubTask *done() override;
 
 protected:

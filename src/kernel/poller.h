@@ -43,6 +43,7 @@ struct __poller_message {
      *       - 返回 -1：表示协议错误，框架会关闭连接。
      * 4. size_t参数: 这是一个双向参数. append方法通过它告诉框架本次调用消费了多少数据，即使消息未完整收完，也可以分批处理 */
     int (*append)(const void *, size_t *, poller_message_t *);
+
     /**C语言中的一种常用技巧，也称为“柔性数组”. 可以写成: int a[]; 或者 int a[0];
      * 允许在分配 poller_message_t 内存时，额外分配一片连续的空间来存储协议相关的数据(如HTTP头部、请求体等).
      * 这样做的好处是内存连续，一次分配即可容纳结构体和数据，效率高，并且能更好地利用缓存. */
@@ -66,7 +67,7 @@ struct poller_data {
 #define PD_OP_SSL_SHUTDOWN	8           // SSL关闭事件. 安全地关闭SSL加密连接
 #define PD_OP_EVENT			9           // 通用事件. 可用于扩展或其他类型的异步事件通知
 #define PD_OP_NOTIFY		10          // 通知事件. 用于内部线程间或组件间的通知机制
-    short operation; // 操作类型标识符. 指定当前要执行何种I/O操作（如读、写、监听、连接等），是事件分发的唯一依据.
+    short operation;       // 操作类型标识符. 指定当前要执行何种I/O操作（如读、写、监听、连接等），是事件分发的唯一依据.
     unsigned short iovcnt; // 分散/聚集 I/O 向量计数. 用于写操作，指定下文中 struct iovec 数组的元素个数，支持高性能的数据批量发送.
     int fd;
     SSL *ssl;
@@ -75,14 +76,19 @@ struct poller_data {
     union {
         /* 当fd可读时，调用此函数创建一个 poller_message_t派生对象，用于开始或继续消息的组装 */
         poller_message_t * (*create_message)(void *);
+
         /* 在异步发送数据时，每当有部分数据被成功写入内核缓冲区后调用，可用于更新超时时间 */
         int (*partial_written)(size_t, void *);
+
         /* 当监听socket有新连接到达时调用，用于接受连接并创建新的通信fd */
         void * (*accept)(const struct sockaddr *, socklen_t, int, void *);
+
         /* 该回调函数负责解析接收到的数据报(用const void* 接收)，并结合发送方地址(sockaddr*)进行业务逻辑处理 */
         void *(*recvfrom)(const struct sockaddr *, socklen_t, const void *, size_t, void *);
+
         /* 处理非网络文件描述符 (fd) 的异步 I/O 事件，如磁盘文件、管道或信号事件 */
         void *(*event)(void *);
+
         /* 实现内部线程间通知或用户自定义的轻量级事件处理。用于安全地唤醒阻塞在 I/O 多路复用调用（如 epoll_wait）上的线程，并传递内部消息 */
         void *(*notify)(void *, void *);
     };
@@ -94,8 +100,8 @@ struct poller_data {
     // 在IO操作的不同阶段，用于指向相关的数据缓冲区.
     union {
         poller_message_t *message; // 用于读操作，指向正在组装的 poller_message_t 对象.
-        struct iovec *write_iov; // 用于写操作，指向需要发送的数据块.可能是个数组，这样可以一次性发送多个iovec块(集中写)。
-        void *result; // 指向连接上下文
+        struct iovec *write_iov;   // 用于写操作，指向需要发送的数据块.可能是个数组，这样可以一次性发送多个iovec块(集中写)。
+        void *result;              // 指向连接上下文
     };
 };
 
@@ -103,24 +109,31 @@ struct poller_data {
 struct poller_result {
     // I/O操作成功完成. 例如，一个读操作成功读取了数据，或一个连接请求成功建立.
 #define PR_ST_SUCCESS   0
+
     // 任务正常结束，通常用于连接关闭等正常流程.
 #define PR_ST_FINISHED  1
+
     // 操作过程中发生错误.此时需要检查error字段获取具体的系统错误码.
 #define PR_ST_ERROR     2
+
     // 该I/O任务已被主动取消或删除. 例如，定时器在到期前被用户取消.
 #define PR_ST_DELETED   3
+
     // 事件被修改，比如在epoll中使用了 EPOLLONESHOT 标志后，需要重新注册事件.
 #define PR_ST_MODIFIED  4
+
     // 通常与进程或服务退出相关，表示由于系统关闭等原因而停止.
 #define PR_ST_STOPPED   5
-    int state; // 记录本次I/O操作的具体结果状态，其值对应上方的常量宏。
-    int error; // 当state为错误状态（如PR_ST_ERROR）时，存储具体的错误码（如errno）
+    int state;               // 记录本次I/O操作的具体结果状态，其值对应上方的常量宏。
+    int error;               // 当state为错误状态（如PR_ST_ERROR）时，存储具体的错误码（如errno）
     struct poller_data data; // poller_data结构体承载了执行I/O操作所需的全部上下文信息，可以看作是附在结果上的“任务说明书”
 };
 
 struct poller_params {
     size_t max_open_file;
+
     void (*call_back)(struct poller_result *, void *);
+
     void *context;
 };
 
@@ -137,15 +150,25 @@ extern "C" {
 #endif
 
 poller_t *poller_creat(const struct poller_params *params);
+
 int poller_start(poller_t *poller);
+
 int poller_add(const struct poller_data *data, int timeout, poller_t *poller);
+
 int poller_del(int fd, poller_t *poller);
+
 int poller_mod(const struct poller_data *data, int timeout, poller_t *poller);
+
 int poller_set_timeout(int fd, int timeout, poller_t *poller);
+
 int poller_add_timer(const struct timespec *value, void *context, void **timer, poller_t *poller);
+
 int poller_del_timer(void *timer, poller_t *poller);
+
 void poller_set_callback(void (*callback)(struct poller_result *, void *), poller_t *poller);
+
 void poller_stop(poller_t *poller);
+
 void poller_destroy(poller_t *poller);
 
 #ifdef __cplusplus

@@ -1,8 +1,9 @@
-#include <csignal>
+#include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <cstdlib>
-#include <cstdio>
+#include <stdlib.h>
+#include <stdio.h>
+#include <utility>
 #include <string>
 #include "HttpMessage.h"
 #include "HttpUtil.h"
@@ -16,14 +17,15 @@ using namespace protocol;
 void pread_callback(WFFileIOTask *task) {
     FileIOArgs *args = task->get_args();
     long ret = task->get_retval();
-    auto *resp = static_cast<HttpResponse *>(task->user_data);
+    HttpResponse *resp = (HttpResponse *)task->user_data;
 
     close(args->fd);
     if (task->get_state() != WFT_STATE_SUCCESS || ret < 0) {
         resp->set_status_code("503");
         resp->append_output_body("<html>503 Internal Server Error.</html>");
-    } else /* Use '_nocopy' carefully. */
+    } else /* Use '_nocopy' carefully. */ {
         resp->append_output_body_nocopy(args->buf, ret);
+    }
 }
 
 void process(WFHttpTask *server_task, const char *root) {
@@ -37,19 +39,18 @@ void process(WFHttpTask *server_task, const char *root) {
 
     std::string abs_path(uri, p - uri);
     abs_path = root + abs_path;
-    if (abs_path.back() == '/') {
-        abs_path += "index.html";
-    }
+    if (abs_path.back() == '/') abs_path += "index.html";
 
     resp->add_header_pair("Server", "Sogou C++ Workflow Server");
 
-    const int fd = open(abs_path.c_str(), O_RDONLY);
+    int fd = open(abs_path.c_str(), O_RDONLY);
     if (fd >= 0) {
-        const size_t size = lseek(fd, 0, SEEK_END);
+        size_t size = lseek(fd, 0, SEEK_END);
         void *buf = malloc(size); /* As an example, assert(buf != NULL); */
         WFFileIOTask *pread_task;
 
-        pread_task = WFTaskFactory::create_pread_task(fd, buf, size, 0, pread_callback);
+        pread_task = WFTaskFactory::create_pread_task(fd, buf, size, 0,
+                                                      pread_callback);
         /* To implement a more complicated server, please use series' context
          * instead of tasks' user_data to pass/store internal data. */
         pread_task->user_data = resp; /* pass resp pointer to pread task. */
@@ -68,7 +69,7 @@ void sig_handler(int signo) {
     wait_group.done();
 }
 
-int test(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
     if (argc != 2 && argc != 3 && argc != 5) {
         fprintf(stderr, "%s <port> [root path] [cert file] [key file]\n",
                 argv[0]);
@@ -98,46 +99,41 @@ int test(int argc, char *argv[]) {
     }
 
     /* Test the server. */
-    auto &&create = [&scheme, port](WFRepeaterTask *) -> SubTask * {
+    auto &&create = [&scheme, port](WFRepeaterTask *)-> SubTask * {
         char buf[1024];
         *buf = '\0';
         printf("Input file name: (Ctrl-D to exit): ");
         scanf("%1023s", buf);
         if (*buf == '\0') {
             printf("\n");
-            return nullptr;
+            return NULL;
         }
 
         std::string url = scheme + "127.0.0.1:" + std::to_string(port) + "/" + buf;
-        WFHttpTask *task =
-            WFTaskFactory::create_http_task(url, 0, 0,
-                                            [](WFHttpTask *task) {
-                                                auto *resp = task->get_resp();
-                                                if (strcmp(resp->get_status_code(), "200") == 0) {
-                                                    std::string body = protocol::HttpUtil::decode_chunked_body(resp);
-                                                    fwrite(body.c_str(), body.size(), 1, stdout);
-                                                    printf("\n");
-                                                } else {
-                                                    printf("%s %s\n", resp->get_status_code(), resp->get_reason_phrase());
-                                                }
-                                            });
+        WFHttpTask *task = WFTaskFactory::create_http_task(url, 0, 0,
+                                                           [](WFHttpTask *task) {
+                                                               auto *resp = task->get_resp();
+                                                               if (strcmp(resp->get_status_code(), "200") == 0) {
+                                                                   std::string body = protocol::HttpUtil::decode_chunked_body(resp);
+                                                                   fwrite(body.c_str(), body.size(), 1, stdout);
+                                                                   printf("\n");
+                                                               } else {
+                                                                   printf("%s %s\n", resp->get_status_code(), resp->get_reason_phrase());
+                                                               }
+                                                           });
 
         return task;
     };
 
     WFFacilities::WaitGroup wg(1);
     WFRepeaterTask *repeater;
-    repeater = WFTaskFactory::create_repeater_task(create, [&wg](WFRepeaterTask *) { wg.done(); });
+    repeater = WFTaskFactory::create_repeater_task(create, [&wg](WFRepeaterTask *) {
+        wg.done();
+    });
 
     repeater->start();
     wg.wait();
 
     server.stop();
-    return 0;
-}
-
-int main(int argc, char *argv[]) {
-    // TEST3::Test();
-    test(argc, argv);
     return 0;
 }
