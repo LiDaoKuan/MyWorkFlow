@@ -21,10 +21,32 @@
            Wu Jiaxu (wujiaxu@sogou-inc.com)
 */
 
+/**
+ * @brief 同步微秒级睡眠（阻塞实现）
+ *
+ * 通过异步睡眠+立即等待实现，本质是：
+ *   1. 创建定时器任务
+ *   2. 阻塞当前线程直到任务完成
+ *
+ * @warning 严重性能警告:
+ *   - 在IO线程调用会导致整个Reactor停摆
+ *   - 仅适用于初始化/销毁等非关键路径
+ */
 inline void WFFacilities::usleep(unsigned int microseconds) {
     async_usleep(microseconds).get();
 }
 
+/**
+ * @brief 异步微秒级睡眠（非阻塞实现）
+ *
+ * 核心流程:
+ *   1. 创建promise/future对
+ *   2. 构建定时器任务（底层基于timerfd/kevent）
+ *   3. 将promise绑定到任务user_data
+ *   4. 启动任务并返回future
+ *
+ * @note 资源管理: promise在回调中delete, 避免内存泄漏
+ */
 inline WFFuture<void> WFFacilities::async_usleep(unsigned int microseconds) {
     auto *pr = new WFPromise<void>();
     auto fr = pr->get_future();
@@ -46,9 +68,9 @@ WFFacilities::WFNetworkResult<RESP> WFFacilities::request(enum TransportType typ
 }
 
 template <class REQ, class RESP>
-WFFuture<WFFacilities::WFNetworkResult<RESP>> WFFacilities::async_request(enum TransportType type, const std::string &url, REQ &&req, int retry_max) {
+WFFuture<WFFacilities::WFNetworkResult<RESP> > WFFacilities::async_request(enum TransportType type, const std::string &url, REQ &&req, int retry_max) {
     ParsedURI uri;
-    auto *pr = new WFPromise<WFNetworkResult<RESP>>();
+    auto *pr = new WFPromise<WFNetworkResult<RESP> >();
     auto fr = pr->get_future();
     auto *task = new WFComplexClientTask<REQ, RESP>(retry_max, [pr](WFNetworkTask<REQ, RESP> *task) {
         WFNetworkResult<RESP> res;
@@ -56,7 +78,9 @@ WFFuture<WFFacilities::WFNetworkResult<RESP>> WFFacilities::async_request(enum T
         res.seqid = task->get_task_seq();
         res.task_state = task->get_state();
         res.task_error = task->get_error();
-        if (res.task_state == WFT_STATE_SUCCESS) res.resp = std::move(*task->get_resp());
+        if (res.task_state == WFT_STATE_SUCCESS) {
+            res.resp = std::move(*task->get_resp());
+        }
 
         pr->set_value(std::move(res));
         delete pr;
@@ -130,6 +154,12 @@ inline WFFuture<int> WFFacilities::async_fdatasync(int fd) {
     return fr;
 }
 
+/**
+ * @brief 定时器任务回调
+ *
+ * 将timer task结果转换为future<void>
+ * @param task 完成的timer task
+ */
 inline void WFFacilities::__timer_future_callback(WFTimerTask *task) {
     auto *pr = static_cast<WFPromise<void> *>(task->user_data);
 
@@ -137,6 +167,12 @@ inline void WFFacilities::__timer_future_callback(WFTimerTask *task) {
     delete pr;
 }
 
+/**
+ * @brief 常规文件I/O回调
+ *
+ * 处理pread/pwrite等操作结果
+ * @param task 完成的file I/O task
+ */
 inline void WFFacilities::__fio_future_callback(WFFileIOTask *task) {
     auto *pr = static_cast<WFPromise<ssize_t> *>(task->user_data);
 
@@ -144,6 +180,12 @@ inline void WFFacilities::__fio_future_callback(WFFileIOTask *task) {
     delete pr;
 }
 
+/**
+ * @brief 向量文件I/O回调
+ *
+ * 处理preadv/pwritev等操作结果
+ * @param task 完成的file vector I/O task
+ */
 inline void WFFacilities::__fvio_future_callback(WFFileVIOTask *task) {
     auto *pr = static_cast<WFPromise<ssize_t> *>(task->user_data);
 
@@ -151,6 +193,12 @@ inline void WFFacilities::__fvio_future_callback(WFFileVIOTask *task) {
     delete pr;
 }
 
+/**
+ * @brief 文件同步操作回调
+ *
+ * 处理fsync/fdatasync结果
+ * @param task 完成的file sync task
+ */
 inline void WFFacilities::__fsync_future_callback(WFFileSyncTask *task) {
     auto *pr = static_cast<WFPromise<int> *>(task->user_data);
 
@@ -174,11 +222,15 @@ inline WFFacilities::WaitGroup::WaitGroup(int n) :
 }
 
 inline WFFacilities::WaitGroup::~WaitGroup() {
-    if (this->nleft > 0) this->task->count();
+    if (this->nleft > 0) {
+        this->task->count();
+    }
 }
 
 inline void WFFacilities::WaitGroup::wait() const {
-    if (this->nleft < 0) return;
+    if (this->nleft < 0) {
+        return;
+    }
 
     this->future.wait();
 }
