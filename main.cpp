@@ -16,7 +16,7 @@ using namespace protocol;
 void pread_callback(WFFileIOTask *task) {
     FileIOArgs *args = task->get_args();
     long ret = task->get_retval();
-    HttpResponse *resp = (HttpResponse *)task->user_data;
+    auto *resp = static_cast<HttpResponse *>(task->user_data);
 
     close(args->fd);
     if (task->get_state() != WFT_STATE_SUCCESS || ret < 0) {

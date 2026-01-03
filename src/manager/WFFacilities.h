@@ -64,11 +64,11 @@ public: // async fileIO
 public:
     class WaitGroup {
     public:
-        WaitGroup(int n);
+        explicit WaitGroup(int n);
         ~WaitGroup();
 
         void wait() const;
-        std::future_status wait(int timeout) const;
+        [[nodiscard]] std::future_status wait(int timeout) const;
         void add(int n);
         void done();
 

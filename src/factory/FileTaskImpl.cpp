@@ -39,7 +39,7 @@ public:
     }
 
 protected:
-    virtual int prepare() {
+    int prepare() override {
         this->prep_pread(this->args.fd, this->args.buf, this->args.count, this->args.offset);
         return 0;
     }
@@ -51,13 +51,13 @@ public:
                      IOService *service, fio_callback_t &&cb) :
         WFFileIOTask(service, std::move(cb)) {
         this->args.fd = fd;
-        this->args.buf = (void *)buf;
+        this->args.buf = const_cast<void *>(buf);
         this->args.count = count;
         this->args.offset = offset;
     }
 
 protected:
-    virtual int prepare() {
+    int prepare() override {
         this->prep_pwrite(this->args.fd, this->args.buf, this->args.count, this->args.offset);
         return 0;
     }
@@ -75,7 +75,7 @@ public:
     }
 
 protected:
-    virtual int prepare() {
+    int prepare() override {
         this->prep_preadv(this->args.fd, this->args.iov, this->args.iovcnt, this->args.offset);
         return 0;
     }
@@ -93,7 +93,7 @@ public:
     }
 
 protected:
-    virtual int prepare() {
+    int prepare() override {
         this->prep_pwritev(this->args.fd, this->args.iov, this->args.iovcnt, this->args.offset);
         return 0;
     }
@@ -107,7 +107,7 @@ public:
     }
 
 protected:
-    virtual int prepare() {
+    int prepare() override {
         this->prep_fsync(this->args.fd);
         return 0;
     }
@@ -121,7 +121,7 @@ public:
     }
 
 protected:
-    virtual int prepare() {
+    int prepare() override {
         this->prep_fdsync(this->args.fd);
         return 0;
     }
@@ -137,14 +137,16 @@ public:
         pathname(path) {}
 
 protected:
-    virtual int prepare() {
+    int prepare() override {
         this->args.fd = open(this->pathname.c_str(), O_RDONLY);
-        if (this->args.fd < 0) return -1;
+        if (this->args.fd < 0) {
+            return -1;
+        }
 
         return WFFilepreadTask::prepare();
     }
 
-    virtual SubTask *done() {
+    SubTask *done() override {
         if (this->args.fd >= 0) {
             close(this->args.fd);
             this->args.fd = -1;
@@ -165,14 +167,16 @@ public:
         pathname(path) {}
 
 protected:
-    virtual int prepare() {
+    int prepare() override {
         this->args.fd = open(this->pathname.c_str(), O_WRONLY | O_CREAT, 0644);
-        if (this->args.fd < 0) return -1;
+        if (this->args.fd < 0) {
+            return -1;
+        }
 
         return WFFilepwriteTask::prepare();
     }
 
-    virtual SubTask *done() {
+    SubTask *done() override {
         if (this->args.fd >= 0) {
             close(this->args.fd);
             this->args.fd = -1;
@@ -248,44 +252,29 @@ protected:
 
 WFFileIOTask *WFTaskFactory::create_pread_task(int fd, void *buf, size_t count,
                                                off_t offset, fio_callback_t callback) {
-    return new WFFilepreadTask(fd, buf, count, offset,
-                               WFGlobal::get_io_service(),
-                               std::move(callback));
+    return new WFFilepreadTask(fd, buf, count, offset, WFGlobal::get_io_service(), std::move(callback));
 }
 
 WFFileIOTask *WFTaskFactory::create_pwrite_task(int fd, const void *buf, size_t count,
                                                 off_t offset, fio_callback_t callback) {
-    return new WFFilepwriteTask(fd, buf, count, offset,
-                                WFGlobal::get_io_service(),
-                                std::move(callback));
+    return new WFFilepwriteTask(fd, buf, count, offset, WFGlobal::get_io_service(), std::move(callback));
 }
 
-WFFileVIOTask *WFTaskFactory::create_preadv_task(int fd,
-                                                 const struct iovec *iovec,
-                                                 int iovcnt,
-                                                 off_t offset,
-                                                 fvio_callback_t callback) {
-    return new WFFilepreadvTask(fd, iovec, iovcnt, offset,
-                                WFGlobal::get_io_service(),
-                                std::move(callback));
+WFFileVIOTask *WFTaskFactory::create_preadv_task(int fd, const struct iovec *iovec, int iovcnt,
+                                                 off_t offset, fvio_callback_t callback) {
+    return new WFFilepreadvTask(fd, iovec, iovcnt, offset, WFGlobal::get_io_service(), std::move(callback));
 }
 
-WFFileVIOTask *WFTaskFactory::create_pwritev_task(int fd,
-                                                  const struct iovec *iovec,
-                                                  int iovcnt,
-                                                  off_t offset,
-                                                  fvio_callback_t callback) {
-    return new WFFilepwritevTask(fd, iovec, iovcnt, offset,
-                                 WFGlobal::get_io_service(), std::move(callback));
+WFFileVIOTask *WFTaskFactory::create_pwritev_task(int fd, const struct iovec *iovec, int iovcnt,
+                                                  off_t offset, fvio_callback_t callback) {
+    return new WFFilepwritevTask(fd, iovec, iovcnt, offset, WFGlobal::get_io_service(), std::move(callback));
 }
 
-WFFileSyncTask *WFTaskFactory::create_fsync_task(int fd,
-                                                 fsync_callback_t callback) {
+WFFileSyncTask *WFTaskFactory::create_fsync_task(int fd, fsync_callback_t callback) {
     return new WFFilefsyncTask(fd, WFGlobal::get_io_service(), std::move(callback));
 }
 
-WFFileSyncTask *WFTaskFactory::create_fdsync_task(int fd,
-                                                  fsync_callback_t callback) {
+WFFileSyncTask *WFTaskFactory::create_fdsync_task(int fd, fsync_callback_t callback) {
     return new WFFilefdsyncTask(fd, WFGlobal::get_io_service(), std::move(callback));
 }
 
@@ -294,27 +283,23 @@ WFFileSyncTask *WFTaskFactory::create_fdsync_task(int fd,
 WFFileIOTask *WFTaskFactory::create_pread_task(const std::string &path, void *buf, size_t count,
                                                off_t offset, fio_callback_t callback) {
     return new __WFFilepreadTask(path, buf, count, offset,
-                                 WFGlobal::get_io_service(),
-                                 std::move(callback));
+                                 WFGlobal::get_io_service(), std::move(callback));
 }
 
 WFFileIOTask *WFTaskFactory::create_pwrite_task(const std::string &path, const void *buf, size_t count,
                                                 off_t offset, fio_callback_t callback) {
     return new __WFFilepwriteTask(path, buf, count, offset,
-                                  WFGlobal::get_io_service(),
-                                  std::move(callback));
+                                  WFGlobal::get_io_service(), std::move(callback));
 }
 
 WFFileVIOTask *WFTaskFactory::create_preadv_task(const std::string &path, const struct iovec *iovec, int iovcnt,
                                                  off_t offset, fvio_callback_t callback) {
     return new __WFFilepreadvTask(path, iovec, iovcnt, offset,
-                                  WFGlobal::get_io_service(),
-                                  std::move(callback));
+                                  WFGlobal::get_io_service(), std::move(callback));
 }
 
 WFFileVIOTask *WFTaskFactory::create_pwritev_task(const std::string &path, const struct iovec *iovec, int iovcnt,
                                                   off_t offset, fvio_callback_t callback) {
     return new __WFFilepwritevTask(path, iovec, iovcnt, offset,
-                                   WFGlobal::get_io_service(),
-                                   std::move(callback));
+                                   WFGlobal::get_io_service(), std::move(callback));
 }

@@ -160,8 +160,12 @@ WFDnsTask *WFTaskFactory::create_dns_task(const ParsedURI &uri, int retry_max,
     ComplexDnsTask *task = new ComplexDnsTask(retry_max, std::move(callback));
     const char *name;
 
-    if (uri.path && uri.path[0] && uri.path[1]) name = uri.path + 1;
-    else name = ".";
+    if (uri.path && uri.path[0] && uri.path[1]) {
+        name = uri.path + 1;
+    }
+    else {
+        name = ".";
+    }
 
     DnsRequest *req = task->get_req();
     req->set_question(name, DNS_TYPE_A, DNS_CLASS_IN);
