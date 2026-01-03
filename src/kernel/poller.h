@@ -124,6 +124,7 @@ struct poller_result {
 
     // 通常与进程或服务退出相关，表示由于系统关闭等原因而停止.
 #define PR_ST_STOPPED   5
+
     int state;               // 记录本次I/O操作的具体结果状态，其值对应上方的常量宏。
     int error;               // 当state为错误状态（如PR_ST_ERROR）时，存储具体的错误码（如errno）
     struct poller_data data; // poller_data结构体承载了执行I/O操作所需的全部上下文信息，可以看作是附在结果上的“任务说明书”
