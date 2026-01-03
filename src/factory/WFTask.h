@@ -40,15 +40,15 @@
 #include "WFConnection.h"
 
 enum {
-    WFT_STATE_UNDEFINED = -1, /* 未定义状态 */
-    WFT_STATE_SUCCESS = CS_STATE_SUCCESS, /* 任务成功完成 */
-    WFT_STATE_TOREPLY = CS_STATE_TOREPLY, /* 需要回复. 仅用于服务器任务, 表示已接收请求并处理, 需要向客户端发送回复. for server task only */
+    WFT_STATE_UNDEFINED = -1,                 /* 未定义状态 */
+    WFT_STATE_SUCCESS = CS_STATE_SUCCESS,     /* 任务成功完成 */
+    WFT_STATE_TOREPLY = CS_STATE_TOREPLY,     /* 需要回复. 仅用于服务器任务, 表示已接收请求并处理, 需要向客户端发送回复. for server task only */
     WFT_STATE_NOREPLY = CS_STATE_TOREPLY + 1, /* 无需回复. 仅用于服务器任务, 表示处理完请求后, 不需要向客户端发送回复. for server task only */
-    WFT_STATE_SYS_ERROR = CS_STATE_ERROR, /* 系统内部错误. 指框架底层或操作系统级别的错误, 如内存分配失败、系统调用异常等 */
-    WFT_STATE_SSL_ERROR = 65, /* SSL/TLS 握手或通信错误. 在建立安全加密连接时发生问题, 如证书验证失败、协议版本不匹配等 */
-    WFT_STATE_DNS_ERROR = 66, /* DNS 解析失败. 仅用于客户端任务, 表示无法将域名解析为有效的IP地址. for client task only */
-    WFT_STATE_TASK_ERROR = 67, /* 任务逻辑错误. 在任务执行逻辑或自定义的回调函数中抛出了异常或返回了错误 */
-    WFT_STATE_ABORTED = CS_STATE_STOPPED /* 任务被主动中止. 任务可能被用户或其他外部逻辑主动取消或终止 */
+    WFT_STATE_SYS_ERROR = CS_STATE_ERROR,     /* 系统内部错误. 指框架底层或操作系统级别的错误, 如内存分配失败、系统调用异常等 */
+    WFT_STATE_SSL_ERROR = 65,                 /* SSL/TLS 握手或通信错误. 在建立安全加密连接时发生问题, 如证书验证失败、协议版本不匹配等 */
+    WFT_STATE_DNS_ERROR = 66,                 /* DNS 解析失败. 仅用于客户端任务, 表示无法将域名解析为有效的IP地址. for client task only */
+    WFT_STATE_TASK_ERROR = 67,                /* 任务逻辑错误. 在任务执行逻辑或自定义的回调函数中抛出了异常或返回了错误 */
+    WFT_STATE_ABORTED = CS_STATE_STOPPED      /* 任务被主动中止. 任务可能被用户或其他外部逻辑主动取消或终止 */
 };
 
 template <class INPUT, class OUTPUT>
@@ -91,7 +91,7 @@ protected:
 
         if (this->callback) { this->callback(this); } // 如果有任务完成回调, 先执行回调
 
-        delete this; // 销毁自身
+        delete this;          // 销毁自身
         return series->pop(); // 返回任务流中的下一个任务
     }
 
@@ -99,8 +99,8 @@ public:
     void *user_data; // ？？？
 
 protected:
-    INPUT input; // 存储任务的输入数据
-    OUTPUT output; // 存储任务的输出结果
+    INPUT input;                                                 // 存储任务的输入数据
+    OUTPUT output;                                               // 存储任务的输出结果
     std::function<void(WFThreadTask<INPUT, OUTPUT> *)> callback; // 任务执行完成后的回调函数
 
 protected:
@@ -218,9 +218,9 @@ protected:
     int send_timeo;
     int receive_timeo;
     int keep_alive_timeo;
-    int watch_timeo; // 任务整体看门狗超时. 任务从开始到结束的总时间限制. 是发送和接收超时的最后一道安全屏, 确保任务不会无限期挂起
-    REQ req; // 模板化的请求对象由具体协议(如 HttpRequest)特化
-    RESP resp; // 模板化的响应对象由具体协议(如 HttpResponse)特化
+    int watch_timeo;                                         // 任务整体看门狗超时. 任务从开始到结束的总时间限制. 是发送和接收超时的最后一道安全屏, 确保任务不会无限期挂起
+    REQ req;                                                 // 模板化的请求对象由具体协议(如 HttpRequest)特化
+    RESP resp;                                               // 模板化的响应对象由具体协议(如 HttpResponse)特化
     std::function<void(WFNetworkTask<REQ, RESP> *)> prepare; // 在连接建立后、请求序列化并发送前调用. 可以基于连接实际状态（如加密套件、服务器信息）动态调整请求
     std::function<void(WFNetworkTask<REQ, RESP> *)> callback;
 
@@ -230,11 +230,11 @@ protected:
      * @param cb 任务完成时的回调函数 */
     WFNetworkTask(CommSchedObject *object, CommScheduler *scheduler, std::function<void(WFNetworkTask<REQ, RESP> *)> &&cb) :
         CommRequest(object, scheduler), callback(std::move(cb)) {
-        this->send_timeo = -1; // 初始化为无限等待
-        this->receive_timeo = -1; // 初始化为无限等待
-        this->keep_alive_timeo = 0; // 0表示任务完成后不保持连接
-        this->watch_timeo = 0; // 任务整体看门狗超时. 0表示没有设置全局超时, 或使用默认短超时以防任务挂起
-        this->target = nullptr; // 指向具体通信目标的指针. 初始为 nullptr
+        this->send_timeo = -1;                  // 初始化为无限等待
+        this->receive_timeo = -1;               // 初始化为无限等待
+        this->keep_alive_timeo = 0;             // 0表示任务完成后不保持连接
+        this->watch_timeo = 0;                  // 任务整体看门狗超时. 0表示没有设置全局超时, 或使用默认短超时以防任务挂起
+        this->target = nullptr;                 // 指向具体通信目标的指针. 初始为 nullptr
         this->timeout_reason = TOR_NOT_TIMEOUT; // 超时原因. 初始化为“未超时”
         this->user_data = nullptr;
         this->state = WFT_STATE_UNDEFINED; // 任务状态. 初始为“未定义”, 任务执行过程中会被框架更新为成功、错误等状态
@@ -327,14 +327,19 @@ protected:
     SubTask *done() override {
         SeriesWork *series = series_of(this);
 
-        if (this->callback) { this->callback(this); }
+        if (this->callback) {
+            this->callback(this);
+        }
 
         delete this;
         return series->pop();
     }
 
 protected:
-    ARGS args; // 模板化的操作参数. 例如，对于读文件操作，可能是包含文件名、偏移量、读取长度的结构体
+    // 模板化的操作参数. 例如:
+    // 对于读文件操作，可能是包含文件描述符、偏移量、读取长度等参数的结构体.
+    // 对于写文件操作，可能是包含文件描述符、文件偏移量、写缓冲区位置等参数的结构体
+    ARGS args;
     std::function<void (WFFileTask<ARGS> *)> callback; // 任务完成的回调
 
 public:
@@ -431,7 +436,7 @@ protected:
     }
 
 protected:
-    std::atomic<unsigned int> value; // 原子变量计数器
+    std::atomic<unsigned int> value;                // 原子变量计数器
     std::function<void (WFCounterTask *)> callback; // 计数完成的回调
 
 public:
@@ -569,9 +574,9 @@ protected:
     }
 
 protected:
-    std::atomic<void *> message; // 存储被选中的消息. 通过原子操作确保只有一个提交者能成功设置消息.
-    std::atomic<bool> flag; // 任务完成同步标志. 用于协调submit()和dispatch()的完成信号, 确保只触发一次 subtask_done().
-    std::atomic<size_t> nleft; // 剩余候选计数器.无论是通过submit提交消息, 还是通过dispatch进行调度, 每次操作都会递减nleft. 当 nleft减至 0 时, 意味着所有候选操作都已执行完毕
+    std::atomic<void *> message;                     // 存储被选中的消息. 通过原子操作确保只有一个提交者能成功设置消息.
+    std::atomic<bool> flag;                          // 任务完成同步标志. 用于协调submit()和dispatch()的完成信号, 确保只触发一次 subtask_done().
+    std::atomic<size_t> nleft;                       // 剩余候选计数器.无论是通过submit提交消息, 还是通过dispatch进行调度, 每次操作都会递减nleft. 当 nleft减至 0 时, 意味着所有候选操作都已执行完毕
     std::function<void (WFSelectorTask *)> callback; // 任务完成后的回调函数
 
 public:
@@ -606,7 +611,7 @@ protected:
     // 任务调度入口
     void dispatch() override {
         series_of(this)->push_front(this->task); // 将包装的任务加入任务流.
-        this->task = nullptr; // 移交任务所有权
+        this->task = nullptr;                    // 移交任务所有权
         // 检查并设置标志
         if (this->flag.exchange(true)) {
             this->subtask_done(); // 若标志已为true，立即完成. 子类可以重写这部分逻辑
@@ -615,8 +620,8 @@ protected:
 
 protected:
     std::atomic<bool> flag; // 条件满足标志. 通过原子操作实现线程安全的条件状态同步
-    SubTask *task; // 被包装的实际任务. 当条件满足时, 此任务将被执行
-    void **msgbuf; // 消息缓冲区指针. 用于接收条件触发时传递过来的数据(如资源指针)
+    SubTask *task;          // 被包装的实际任务. 当条件满足时, 此任务将被执行
+    void **msgbuf;          // 消息缓冲区指针. 用于接收条件触发时传递过来的数据(如资源指针)
 
 public:
     WFConditional(SubTask *task, void **msgbuf) :
@@ -772,7 +777,7 @@ protected:
 public:
     WFModuleTask(SubTask *first, std::function<void (const WFModuleTask *)> &&cb) :
         ParallelTask(&this->first, 1), // 初始化ParallelTask，子任务列表指向first
-        SeriesWork(first, nullptr), // 初始化SeriesWork，以first为起始任务
+        SeriesWork(first, nullptr),    // 初始化SeriesWork，以first为起始任务
         callback(std::move(cb)) {
         this->first = first;
         this->set_in_parallel(this); // 关键: 将自身设置为并行上下文

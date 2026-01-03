@@ -105,7 +105,7 @@ int test(int argc, char *argv[]) {
         scanf("%1023s", buf);
         if (*buf == '\0') {
             printf("\n");
-            return NULL;
+            return nullptr;
         }
 
         std::string url = scheme + "127.0.0.1:" + std::to_string(port) + "/" + buf;
