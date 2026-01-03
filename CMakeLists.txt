@@ -3,6 +3,10 @@ project(myWorkFlow)
 
 set(CMAKE_CXX_STANDARD 23)
 
+set(CMAKE_BUILD_TYPE Debug)
+# 可选：为Debug模式添加更具体的选项（GDB友好）
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g -ggdb")
+
 set(COMMON_KERNEL_HEADERS
         src/kernel/Communicator.h
         src/kernel/list.h

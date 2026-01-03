@@ -678,7 +678,7 @@ static void __poller_handle_connect(struct __poller_node *node, poller_t *poller
      * 如果移除操作本身失败（例如节点已被移除），函数直接返回，避免后续操作
      */
     if (__poller_remove_node(node, poller)) { return; }
-    if (error) {
+    if (error == 0) {
         node->error = 0;
         node->state = PR_ST_FINISHED; // 连接已就绪，可以进行后续的数据收发了
     } else {
@@ -1416,6 +1416,7 @@ int poller_del(int fd, poller_t *poller) {
 
         node->error = 0;
         node->state = PR_ST_DELETED;
+        printf("--------------------poller_del() called---------------------------\n");
         stopped = poller->stopped;
         if (!stopped) {
             // 如果 poller 线程仍在运行（!stopped）

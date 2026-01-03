@@ -584,12 +584,12 @@ int RouteManager::get(enum TransportType type, const struct addrinfo *addrinfo, 
 
 void RouteManager::notify_unavailable(void *cookie, CommTarget *target) {
     if (cookie && target) {
-        static_cast<RouteResultEntry *>(cookie)->notify_unavailable(dynamic_cast<RouteTarget *>(target));
+        static_cast<RouteResultEntry *>(cookie)->notify_unavailable(static_cast<RouteTarget *>(target));
     }
 }
 
 void RouteManager::notify_available(void *cookie, CommTarget *target) {
     if (cookie && target) {
-        static_cast<RouteResultEntry *>(cookie)->notify_available(dynamic_cast<RouteTarget *>(target));
+        static_cast<RouteResultEntry *>(cookie)->notify_available(static_cast<RouteTarget *>(target));
     }
 }

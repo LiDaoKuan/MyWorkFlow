@@ -345,7 +345,9 @@ static int parse_header_name(const char *ptr, size_t len, http_parser_t *parser)
         // 累积字符到缓冲区
         parser->name_buf[i] = ptr[i];
     }
-    if (i == HTTP_HEADER_NAME_MAX) return -2;
+    if (i == HTTP_HEADER_NAME_MAX) {
+        return -2;
+    }
     return 0;
 }
 

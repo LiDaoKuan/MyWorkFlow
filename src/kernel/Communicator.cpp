@@ -56,13 +56,13 @@ struct CommConnEntry {
 #define CONN_STATE_ERROR		7   // 出错
     int state; // 记录连接处于生命周期中的哪个阶段
     int error;
-    int ref; // 引用计数, 用户跟踪当前有多少个模块正在使用该条目
-    iovec *write_iov; // 写入数据缓冲区
-    SSL *ssl; // SSL/TSL上下文, 如果连接启用了加密, 该指针指向OpenSSL的SSL对象, 负责所有的加密解密操作
+    int ref;              // 引用计数, 用户跟踪当前有多少个模块正在使用该条目
+    iovec *write_iov;     // 写入数据缓冲区
+    SSL *ssl;             // SSL/TSL上下文, 如果连接启用了加密, 该指针指向OpenSSL的SSL对象, 负责所有的加密解密操作
     CommSession *session; // 会话上下文, 指向与此次连接关联的会话对象, 通常包含协议处理逻辑和用户数据
-    CommTarget *target; // 连接目标, 指向描述连接目标(如远程服务器地址)的对象
+    CommTarget *target;   // 连接目标, 指向描述连接目标(如远程服务器地址)的对象
     CommService *service; // 所属服务, 指向创建并管理此连接的服务实例. 如果是客户端连接, 则service==nullptr
-    mpoller_t *mpoller; // 多路复用器, 指向管理I/O事件的多路复用对象
+    mpoller_t *mpoller;   // 多路复用器, 指向管理I/O事件的多路复用对象
     /* Connection entry's mutex is for client session only. */
     pthread_mutex_t mutex; // 用于保护CommConnEntry结构体自身的数据的线程安全访问
 };
@@ -148,9 +148,9 @@ static int ssl_writev(SSL *ssl, struct iovec vectors[], const int cnt) {
         // 至此, 确保p指向的内存是可用的
         size_t n = vectors[0].iov_len;
         memcpy(p, vectors[0].iov_base, n); // 拷贝第一个块
-        vectors[0].iov_base = p; // 重定向基址
+        vectors[0].iov_base = p;           // 重定向基址
 
-        p += n; // p指针后移
+        p += n;     // p指针后移
         nleft -= n; // 剩余空间-n
         for (int i = 1; i < cnt; ++i) {
             // 计算当前块要拷贝的长度
@@ -162,7 +162,7 @@ static int ssl_writev(SSL *ssl, struct iovec vectors[], const int cnt) {
             // 拷贝当前块
             memcpy(p, vectors[i].iov_base, n);
             vectors[i].iov_base = static_cast<char *>(vectors[i].iov_base) + n; // 调整原向量的基址
-            vectors[i].iov_len -= n; // 调整原向量的长度
+            vectors[i].iov_len -= n;                                            // 调整原向量的长度
             // 更新指针和剩余空间
             p += n;
             nleft -= n;
@@ -189,10 +189,10 @@ static void release_conn(struct CommConnEntry *entry) {
     }
     if (entry->ssl) {
         free(SSL_get_app_data(entry->ssl)); // 首先释放附加在SSL对象上的应用程序数据缓冲区
-        SSL_free(entry->ssl); // 再释放SSL上下文对象
+        SSL_free(entry->ssl);               // 再释放SSL上下文对象
     }
     close(entry->sockfd); // 关闭sock
-    free(entry); // 释放CommConnEntry本身
+    free(entry);          // 释放CommConnEntry本身
 }
 
 int CommTarget::init(const sockaddr *_addr, const socklen_t _addrlen, const int _connect_timeout, const int _response_timeout) {
@@ -220,7 +220,8 @@ int CommTarget::init(const sockaddr *_addr, const socklen_t _addrlen, const int 
 
 void CommTarget::deinit() {
     pthread_mutex_destroy(&this->mutex); // 销毁互斥锁
-    free(this->addr); // 释放内存
+    free(this->addr);                    // 释放内存
+    this->addr = nullptr;
 }
 
 int CommMessageIn::feedback(const void *buf, const size_t size) {
@@ -318,7 +319,7 @@ int CommService::drain(const int max) {
     }
     pthread_mutex_unlock(&entry->mutex);
     errno = errno_bak; // 恢复errno
-    return cnt; // 返回关闭的连接数量
+    return cnt;        // 返回关闭的连接数量
 }
 
 inline void CommService::incref() {
@@ -335,7 +336,9 @@ inline void CommService::decref() {
 class CommServiceTarget : public CommTarget {
 public:
     // 增加引用计数. 表示该连接被新的任务或操作引用
-    void incref() { __sync_and_and_fetch(&this->ref, 1); }
+    void incref() {
+        __sync_add_and_fetch(&this->ref, 1);
+    }
 
     // 减少引用计数. 当计数归零时，触发连接销毁链：通知服务、释放资源、删除自身对象
     void decref() {
@@ -345,7 +348,7 @@ public:
             // 每个连接销毁时都通知服务,使得服务可以知道当前活跃连接数
             this->service->decref();
             this->deinit(); // 释放资源
-            delete this; // 调用析构函数
+            delete this;    // 调用析构函数
         }
     }
 
@@ -398,7 +401,7 @@ CommSession::~CommSession() {
     // 而主动发起的连接(如客户端连接)可能采用更简单的生命周期管理, 因此直接返回
     if (!this->passive) { return; }
 
-    auto _target = dynamic_cast<CommServiceTarget *>(this->target);
+    auto _target = static_cast<CommServiceTarget *>(this->target);
     if (!this->msg_out && _target->has_idle_conn()) {
         // !this->out: 表示它没有向外发送消息的需求, 进一步验证它是由服务端管理的入站连接
         // _target->has_idle_conn(): 检查这个CommServiceTarget所管理的连接池中是否还存在空闲的连接
@@ -419,7 +422,7 @@ inline int Communicator::first_timeout(CommSession *session) {
     // 但是考虑到session->timeout 可能<0, 所以将两者都转换为unsigned int进行比较
     if (timeout < 0 || static_cast<unsigned int>(session->timeout) <= static_cast<unsigned int>(timeout)) {
         timeout = session->timeout; // 采用会话的超时
-        session->timeout = 0; // 会话的超时阀值只在第一次有效？？？
+        session->timeout = 0;       // 会话的超时阀值只在第一次有效？？？
     } else {
         // 说明target的timeout更紧急
         clock_gettime(CLOCK_MONOTONIC, &session->begin_time);
@@ -476,7 +479,7 @@ void Communicator::shutdown_service(CommService *service) {
 #define IOV_MAX     16
 #endif
 
-// 同步式发送消息. 返回剩余未处理的向量数量
+// 同步式发送消息. 将cnt个io_vec写入写缓冲区, 如果缓冲区满, 返回剩余未处理的iovec数量.
 int Communicator::send_message_sync(iovec io_vec[], int cnt, CommConnEntry *entry) const {
     CommSession *session = entry->session;
     int timeout;
@@ -486,10 +489,13 @@ int Communicator::send_message_sync(iovec io_vec[], int cnt, CommConnEntry *entr
         if (!entry->ssl) {
             // 没有开启SSL, 使用分散写, 直接写入
             wrote_size = writev(entry->sockfd, io_vec, cnt <= IOV_MAX ? cnt : IOV_MAX);
-            // n表示已经写入的字节数(不出错情况下)
+            // wrote_size表示已经写入的字节数(不出错情况下)
             if (wrote_size < 0) {
                 // 错误码为EAGAIN, 表示套接字缓冲区已满, 函数返回剩余未发送的向量数cnt
                 // 否则返回-1, 表示出现了未知错误
+                if (errno != EAGAIN) {
+                    return -1; // DEBUG
+                }
                 return errno == EAGAIN ? cnt : -1;
             }
         } else if (io_vec->iov_len > 0) {
@@ -519,25 +525,25 @@ int Communicator::send_message_sync(iovec io_vec[], int cnt, CommConnEntry *entr
     CommService *service = entry->service;
     if (service) {
         // 服务端连接(service!=nullptr)
-        __sync_add_and_fetch(&entry->ref, 1); // 增加引用计数，防止被意外释放
+        __sync_add_and_fetch(&entry->ref, 1);    // 增加引用计数，防止被意外释放
         timeout = session->keep_alive_timeout(); // 获取保活超时时间
         switch (timeout) {
-        default: // timeout!=0，才会执行default段的代码
+        default:                                                        // timeout!=0，才会执行default段的代码
             mpoller_set_timeout(entry->sockfd, timeout, this->mpoller); // 设置超时
             pthread_mutex_lock(&service->mutex);
             if (service->listen_fd >= 0) {
-                entry->state = CONN_STATE_KEEPALIVE; // 设置为保活状态
+                entry->state = CONN_STATE_KEEPALIVE;               // 设置为保活状态
                 list_add(&entry->list, &service->keep_alive_list); // 加入保活列表
-                entry = nullptr; // 标记entry已被管理，防止后续重复操作
+                entry = nullptr;                                   // 标记entry已被管理，防止后续重复操作
             }
             pthread_mutex_unlock(&service->mutex);
             // 如果service->listen_fd < 0 (服务器执行了关闭逻辑, 如调用了shutdown或者stop类似函数),
             // 那么entry就不为空, if语句就会执行, 接着发生switch-case的穿透, 执行case 0
             if (entry) {
                 // timeout==0, 会直接跳转到case 0处, 不会执行前面的代码
-            case 0: // 执行立即关闭逻辑
+            case 0:                                        // 执行立即关闭逻辑
                 mpoller_del(entry->sockfd, this->mpoller); // 立即将fd从多路复用器中移除
-                entry->state = CONN_STATE_CLOSING; // 设置为关闭中状态
+                entry->state = CONN_STATE_CLOSING;         // 设置为关闭中状态
             }
         }
     }
@@ -583,7 +589,7 @@ int Communicator::send_message_async(iovec vectors[], const int cnt, CommConnEnt
     data.fd = entry->sockfd;
     data.ssl = entry->ssl;
     data.partial_written = partial_written; // 部分写入的回调函数
-    data.context = entry; // 连接条目作为上下文
+    data.context = entry;                   // 连接条目作为上下文
     data.write_iov = entry->write_iov;
     data.iovcnt = cnt;
     timeout = first_timeout_send(entry->session); // 获取发送操作的超时时间
@@ -638,6 +644,9 @@ int Communicator::send_message(CommConnEntry *entry) const {
     cnt = this->send_message_sync(io_vec, cnt, entry);
     // cnt>0: 此时cnt表示剩余未写入的io_vec数, 可能因为缓冲区已满, 导致部分iovec没有被写入
     if (cnt <= 0) {
+        if (cnt == -1) {
+            return -1; // DEBUG
+        }
         // 出错, 返回错误码
         return cnt;
     }
@@ -668,17 +677,17 @@ void Communicator::handle_incoming_request(poller_result *res) {
         pthread_mutex_unlock(&target->mutex);
         break;
     }
-    /**开发者希望 PR_ST_FINISHED 和 PR_ST_ERROR 这两种状态共享绝大部分处理逻辑(比如它们后面的锁操作和内部switch).
+    /**此处希望 PR_ST_FINISHED 和 PR_ST_ERROR 这两种状态共享绝大部分处理逻辑(比如它们后面的锁操作和内部switch).
      * 通过 if (true) case PR_ST_ERROR: 这种写法, 使得当poller结果是PR_ST_FINISHED时,
      * 程序在执行完res->error = ECONNRESET;后, 能直接跳转到PR_ST_ERROR的代码位置继续执行.
      * 这避免了将同样的代码写两遍*/
-    case PR_ST_FINISHED: // 连接正常关闭？？？
+    case PR_ST_FINISHED:         // 连接正常关闭？？？
         res->error = ECONNRESET; // 为FINISHED状态设置特定错误码
-        if (true) // 这个条件永远为真，目的是为了语法正确，从而实现case穿透
+        if (true)                // 这个条件永远为真，目的是为了语法正确，从而实现case穿透
         case PR_ST_ERROR: state = CONN_STATE_ERROR;
-        else // 由于if(true)，else分支永远不会执行，此处仅为了语法
+        else                // 由于if(true)，else分支永远不会执行，此处仅为了语法
         case PR_ST_DELETED: // PR_ST_DELETED和PR_ST_STOPPED: 这两个状态的处理逻辑完全一致, 所以直接用标准的case贯穿写法合并在一起
-    case PR_ST_STOPPED: // 当连接需要关闭(PR_ST_STOPPED)或者删除(PR_ST_DELETED)时, 判断当前状态执行相应清理操作
+    case PR_ST_STOPPED:     // 当连接需要关闭(PR_ST_STOPPED)或者删除(PR_ST_DELETED)时, 判断当前状态执行相应清理操作
         state = CS_STATE_STOPPED;
         pthread_mutex_lock(&target->mutex);
         switch (entry->state) {
@@ -698,7 +707,7 @@ void Communicator::handle_incoming_request(poller_result *res) {
         case CONN_STATE_RECEIVING: session = entry->session;
             break;
         case CONN_STATE_SUCCESS: entry->state = CONN_STATE_CLOSING; // 标记连接考试关闭
-            entry = nullptr; // 用nullptr标记此条目已经处理, 防止后续重复处理
+            entry = nullptr;                                        // 用nullptr标记此条目已经处理, 防止后续重复处理
             break;
         }
         pthread_mutex_unlock(&target->mutex);
@@ -714,8 +723,8 @@ void Communicator::handle_incoming_request(poller_result *res) {
         if (__sync_sub_and_fetch(&entry->ref, 1) == 0) {
             // 当计数减至0时, 表示没有其他部分再需要这个连接,
             // 随即调用__release_conn(entry)释放连接占用的核心资源（如套接字、SSL上下文等）
-            release_conn(entry); // 释放连接相关资源
-            dynamic_cast<CommServiceTarget *>(target)->decref(); // 减少目标引用计数
+            release_conn(entry);                                // 释放连接相关资源
+            static_cast<CommServiceTarget *>(target)->decref(); // 减少目标引用计数
         }
     }
 }
@@ -737,9 +746,9 @@ void Communicator::handle_incoming_reply(struct poller_result *res) {
             __sync_add_and_fetch(&entry->ref, 1);
             if (session->timeout != 0) /* 如果session->timeout!=0，意味着设置了保活机制 */
             {
-                entry->state = CONN_STATE_IDLE; // 转为空闲状态
+                entry->state = CONN_STATE_IDLE;             // 转为空闲状态
                 list_add(&entry->list, &target->idle_list); // 加入空闲链表
-            } else { entry->state = CONN_STATE_CLOSING; } // 没有设置保活, 连接关闭
+            } else { entry->state = CONN_STATE_CLOSING; }   // 没有设置保活, 连接关闭
         }
         pthread_mutex_unlock(&target->mutex);
         break;
@@ -771,7 +780,7 @@ void Communicator::handle_incoming_reply(struct poller_result *res) {
     if (entry) {
         // entry不为nullptr，说明出错了
         if (session) {
-            target->release(); // 释放target的资源
+            target->release();                  // 释放target的资源
             session->handle(state, res->error); // 回调处理错误
         }
         // 减少引用计数
@@ -842,7 +851,7 @@ void Communicator::handle_reply_result(struct poller_result *res) {
         session->handle(state, res->error);
         if (__sync_sub_and_fetch(&entry->ref, 1) == 0) {
             release_conn(entry);
-            dynamic_cast<CommServiceTarget *>(target)->decref();
+            static_cast<CommServiceTarget *>(target)->decref();
         }
 
         break;
@@ -926,14 +935,14 @@ CommConnEntry *Communicator::accept_conn(CommServiceTarget *target, CommService 
             // 调用回调函数, 将新套接字传递进去, 由上层业务逻辑来创建并返回一个具体的连接对象(例如CommConnection)
             entry->conn = service->new_connection(target->sockfd);
             if (entry->conn) {
-                entry->seq = 0; // 序列号置零, 标志一个新的请求-响应周期的开始
+                entry->seq = 0;           // 序列号置零, 标志一个新的请求-响应周期的开始
                 entry->mpoller = nullptr; // 多路复用器指针初始为空，后续由框架赋值
                 entry->service = service; // 记录该连接所属的服务
-                entry->target = target; // 记录该连接所属的目标
-                entry->ssl = nullptr; // SSL上下文初始为空, 表示当前是普通TCP连接
+                entry->target = target;   // 记录该连接所属的目标
+                entry->ssl = nullptr;     // SSL上下文初始为空, 表示当前是普通TCP连接
                 entry->sockfd = target->sockfd;
                 entry->state = CONN_STATE_CONNECTED; // 设置连接状态为“已连接”, 这是连接状态机的起点
-                entry->ref = 1; // 初始化引用计数为1
+                entry->ref = 1;                      // 初始化引用计数为1
                 return entry;
             }
             free(entry);
@@ -982,7 +991,7 @@ void Communicator::handle_connect_result(poller_result *res) {
                     session->begin_time.tv_nsec = 0;
                 }
             } else if (ret > 0) { break; } // 数据已经全部同步发送完毕, 直接跳出switch
-        } else { ret = -1; } // 无法获取待发送消息，标记失败
+        } else { ret = -1; }               // 无法获取待发送消息，标记失败
 
         if (ret >= 0) {
             // 无论走哪条路径，如果需要进行下一步异步操作(SSL握手或等待读取回复)函数会尝试将其注册到多路复用器
@@ -993,13 +1002,17 @@ void Communicator::handle_connect_result(poller_result *res) {
         }
         // 如果mpoller_add失败或ret<0，则记录错误并进入错误处理.
         res->error = errno;
-        if (1) case PR_ST_ERROR: state = CS_STATE_ERROR;
-        else case PR_ST_DELETED:
-    case PR_ST_STOPPED: state = CS_STATE_STOPPED;
+        if (1)            //
+        case PR_ST_ERROR: //
+            state = CS_STATE_ERROR;
+        else //
+        case PR_ST_DELETED:
+    case PR_ST_STOPPED: //
+        state = CS_STATE_STOPPED;
         // 释放与通信目标相关的资源
         target->release();
         session->handle(state, res->error); // 回调上层, 通知最终结果
-        release_conn(entry); // 释放连接条目本身占用的所有资源(如套接字、SSL上下文、内存等)
+        release_conn(entry);                // 释放连接条目本身占用的所有资源(如套接字、SSL上下文、内存等)
         break;
     }
 }
@@ -1012,9 +1025,9 @@ void Communicator::handle_listen_result(poller_result *res) {
     int timeout;
 
     switch (res->state) {
-    case PR_ST_SUCCESS: // I/O操作成功
+    case PR_ST_SUCCESS:                                              // I/O操作成功
         target = static_cast<CommServiceTarget *>(res->data.result); // 获取对端信息
-        entry = accept_conn(target, service); // 为新连接创建一个CommConnEntry条目, 用于管理该连接后续的所有状态和I/O操作
+        entry = accept_conn(target, service);                        // 为新连接创建一个CommConnEntry条目, 用于管理该连接后续的所有状态和I/O操作
         if (entry) {
             entry->mpoller = this->mpoller;
             // 如果该service已经有ssl上下文
@@ -1022,11 +1035,11 @@ void Communicator::handle_listen_result(poller_result *res) {
                 // 创建SSL对象, 并且初始化SSL
                 if (create_ssl(service->ssl_ctx, entry) >= 0 && service->init_ssl(entry->ssl) >= 0) {
                     res->data.operation = PD_OP_SSL_ACCEPT; // 初始化成功, 配置下一次异步操作为SSL握手(PD_OP_SSL_ACCEPT)
-                    timeout = service->ssl_accept_timeout; // 设置SSL握手超时时间
+                    timeout = service->ssl_accept_timeout;  // 设置SSL握手超时时间
                 }
             } else {
                 // 该service没有设置SSL上下文
-                res->data.operation = PD_OP_READ; // 将下一次操作类型设置为 PD_OP_READ，准备开始读取客户端发送的应用层数据(如HTTP请求)
+                res->data.operation = PD_OP_READ;          // 将下一次操作类型设置为 PD_OP_READ，准备开始读取客户端发送的应用层数据(如HTTP请求)
                 res->data.create_message = create_request; // 设置回调函数
                 res->data.message = nullptr;
                 timeout = target->response_timeout; // 采用目标默认的超时时间
@@ -1052,7 +1065,7 @@ void Communicator::handle_listen_result(poller_result *res) {
         target->decref();
         break;
 
-    case PR_ST_DELETED: // 收到PR_ST_DELETED状态时, 表示该监听套接字已被显式删除
+    case PR_ST_DELETED:                  // 收到PR_ST_DELETED状态时, 表示该监听套接字已被显式删除
         this->shutdown_service(service); // 关闭整个服务
         break;
 
@@ -1081,7 +1094,7 @@ void Communicator::handle_recvfrom_result(poller_result *res) {
             // 状态正常, 将会话状态设置为CS_STATE_TOREPLY, 表示服务器需要准备回复
             state = CS_STATE_TOREPLY;
             error = 0;
-            entry->state = CONN_STATE_IDLE; // 连接状态置为空闲
+            entry->state = CONN_STATE_IDLE;             // 连接状态置为空闲
             list_add(&entry->list, &target->idle_list); // 加入空闲链表
         } else {
             // entry本身已处于错误状态或其他异常状态
@@ -1096,17 +1109,17 @@ void Communicator::handle_recvfrom_result(poller_result *res) {
         if (state == CS_STATE_ERROR) {
             // 仅在发生错误时, 才会释放连接资源, 并减少目标引用计数.
             release_conn(entry);
-            dynamic_cast<CommServiceTarget *>(target)->decref();
+            static_cast<CommServiceTarget *>(target)->decref();
         }
 
         break;
 
-    case PR_ST_DELETED: // 该连接已被显式删除
+    case PR_ST_DELETED:                  // 该连接已被显式删除
         this->shutdown_service(service); // 关闭整个服务
         break;
 
-    case PR_ST_ERROR: // 发生错误
-    case PR_ST_STOPPED: // 服务被要求停止
+    case PR_ST_ERROR:                     // 发生错误
+    case PR_ST_STOPPED:                   // 服务被要求停止
         service->handle_stop(res->error); // 回调处理服务停止的资源清理
         break;
     }
@@ -1131,9 +1144,9 @@ void Communicator::handle_ssl_accept_result(poller_result *res) const {
 
     case PR_ST_DELETED:
     case PR_ST_ERROR:
-    case PR_ST_STOPPED: // 连接出错，停止，被删除
-        release_conn(entry); // 释放连接资源
-        dynamic_cast<CommServiceTarget *>(target)->decref(); // 减小目标target的引用计数
+    case PR_ST_STOPPED:                                     // 连接出错，停止，被删除
+        release_conn(entry);                                // 释放连接资源
+        static_cast<CommServiceTarget *>(target)->decref(); // 减小目标target的引用计数
         break;
     }
 }
@@ -1146,7 +1159,7 @@ void Communicator::handle_sleep_result(poller_result *res) {
     switch (res->state) {
     case PR_ST_FINISHED: state = SS_STATE_COMPLETE;
         break;
-    case PR_ST_DELETED: // poller操作被删除
+    case PR_ST_DELETED:         // poller操作被删除
         res->error = ECANCELED; // 标记该睡眠任务被取消
     // 此处存在case穿透
     case PR_ST_ERROR: state = SS_STATE_ERROR; // 映射为睡眠任务出错
@@ -1181,10 +1194,10 @@ void Communicator::handle_aio_result(poller_result *res) {
         }
 
         session->handle(state, error); // 回调上层
-        service->decref(); // 减少service的引用计数
+        service->decref();             // 减少service的引用计数
         break;
 
-    case PR_ST_DELETED: // 该异步I/O操作已被显式取消
+    case PR_ST_DELETED:                     // 该异步I/O操作已被显式取消
         this->shutdown_io_service(service); // 关闭整个IO服务
         break;
 
@@ -1205,7 +1218,7 @@ void Communicator::handle_poller_result(poller_result *res) {
     case PD_OP_WRITE: // 写(网络数据)
         this->handle_write_result(res);
         break;
-    case PD_OP_CONNECT: // 建立连接
+    case PD_OP_CONNECT:     // 建立连接
     case PD_OP_SSL_CONNECT: // SSL 客户端握手
         this->handle_connect_result(res);
         break;
@@ -1264,7 +1277,7 @@ int Communicator::append_message(const void *buf, size_t *size, poller_message_t
             }
         } else {
             timeout = -1; // ???
-        } // 服务端连接的处理
+        }                 // 服务端连接的处理
     } else if (ret == 0 && session->timeout != 0) {
         // ret==0: 表示数据已经成功追加, 但当前累积的数据还不足以构成一个完整的消息, 需要继续等待更多数据到达
         // 通过检查 session->begin_time来判断是否是首次为当前接收操作设置超时
@@ -1344,7 +1357,7 @@ poller_message_t *Communicator::create_request(void *context) {
     mpoller_set_timeout(entry->sockfd, timeout, entry->mpoller);
     entry->state = CONN_STATE_RECEIVING; // 连接状态置为CONN_STATE_RECEIVING, 表明它已进入等待接收客户端请求数据的阶段
 
-    dynamic_cast<CommServiceTarget *>(target)->incref(); // 对 target增加引用计数
+    static_cast<CommServiceTarget *>(target)->incref(); // 对 target增加引用计数
 
     in = session->message_in(); // 获取一个CommMessageIn对象. 这个对象负责解析应用层协议
     if (in) {
@@ -1409,7 +1422,7 @@ int Communicator::recv_request(const void *buf, size_t size, CommConnEntry *entr
 
     entry->state = CONN_STATE_RECEIVING; // 进入接收请求数据的状态
 
-    dynamic_cast<CommServiceTarget *>(target)->incref(); // target的引用计数-1
+    static_cast<CommServiceTarget *>(target)->incref(); // target的引用计数+1
 
     CommMessageIn *in = session->message_in(); // 获取消息解析器
     if (in) {
@@ -1529,7 +1542,7 @@ int Communicator::create_handler_threads(size_t handler_threads) {
             return 0;
         }
         // 部分调度失败
-        msgqueue_set_nonblock(this->msgqueue); // 设置消息队列非阻塞
+        msgqueue_set_nonblock(this->msgqueue);     // 设置消息队列非阻塞
         thrdpool_destroy(nullptr, this->thrdpool); // 销毁线程池
     }
 
@@ -1573,7 +1586,7 @@ int Communicator::init(size_t poller_threads, size_t handler_threads) {
     if (this->create_poller(poller_threads) >= 0) {
         if (this->create_handler_threads(handler_threads) >= 0) {
             this->event_handler = nullptr; // 为未来预留的扩展接口？？？
-            this->stop_flag = 0; // 标记Communicator已经启动
+            this->stop_flag = 0;           // 标记Communicator已经启动
             return 0;
         }
         // IO线程池启动失败, 停止poller并释放资源
@@ -1587,17 +1600,17 @@ int Communicator::init(size_t poller_threads, size_t handler_threads) {
 
 // 优雅关闭整个异步处理引擎
 void Communicator::deinit() {
-    this->stop_flag = 1; // 标记Communicator已停止
+    this->stop_flag = 1;         // 标记Communicator已停止
     mpoller_stop(this->mpoller); // 停止所有poller线程
     if (this->event_handler) {
         // 等待一个自定义的、可能由用户注册的事件处理器完成其收尾工作
         this->event_handler->wait();
     }
 
-    msgqueue_set_nonblock(this->msgqueue); // 设置队列非阻塞
+    msgqueue_set_nonblock(this->msgqueue);     // 设置队列非阻塞
     thrdpool_destroy(nullptr, this->thrdpool); // 销毁线程池
-    mpoller_destroy(this->mpoller); // 释放mpoller的资源
-    msgqueue_destroy(this->msgqueue); // 销毁消息队列
+    mpoller_destroy(this->mpoller);            // 释放mpoller的资源
+    msgqueue_destroy(this->msgqueue);          // 销毁消息队列
 }
 
 // 客户端发起非阻塞TCP连接
@@ -1632,15 +1645,15 @@ CommConnEntry *Communicator::launch_conn(CommSession *session, CommTarget *targe
             if (ret == 0) {
                 entry->conn = target->new_connection(sockfd); // 创建一个与具体协议（如 HTTP、Redis）相关的连接对象
                 if (entry->conn) {
-                    entry->seq = 0; // 初始化序列号
-                    entry->mpoller = nullptr; // 多路复用器暂未设置
-                    entry->service = nullptr; // 这是一个客户端连接，服务端上下文为空
-                    entry->target = target; // 设置连接目标
-                    entry->session = session; // 关联用户会话
-                    entry->ssl = nullptr; // 非SSL连接，SSL上下文为空
-                    entry->sockfd = sockfd; // 记录套接字描述符
+                    entry->seq = 0;                       // 初始化序列号
+                    entry->mpoller = nullptr;             // 多路复用器暂未设置
+                    entry->service = nullptr;             // 这是一个客户端连接，服务端上下文为空
+                    entry->target = target;               // 设置连接目标
+                    entry->session = session;             // 关联用户会话
+                    entry->ssl = nullptr;                 // 非SSL连接，SSL上下文为空
+                    entry->sockfd = sockfd;               // 记录套接字描述符
                     entry->state = CONN_STATE_CONNECTING; // 设置状态为“连接中”
-                    entry->ref = 1; // 初始化引用计数为1
+                    entry->ref = 1;                       // 初始化引用计数为1
                     return entry;
                 }
                 // 连接对象创建失败，则销毁互斥锁
@@ -1664,12 +1677,12 @@ int Communicator::request_idle_conn(CommSession *session, CommTarget *target) {
     while (true) {
         pthread_mutex_lock(&target->mutex);
         if (!list_is_empty(&target->idle_list)) {
-            pos = target->idle_list.next; // 取出一个空闲连接
+            pos = target->idle_list.next;                        // 取出一个空闲连接
             entry = list_entry(pos, struct CommConnEntry, list); // 获得该连接所在的CommConnEntry
-            list_del(pos); // 将该空闲连接从空闲链表中删除
-            pthread_mutex_lock(&entry->mutex); // 对entry->mutex上锁
-        } else { entry = nullptr; } // 没有空闲连接, entry置为nullptr
-        pthread_mutex_unlock(&target->mutex); // target解锁
+            list_del(pos);                                       // 将该空闲连接从空闲链表中删除
+            pthread_mutex_lock(&entry->mutex);                   // 对entry->mutex上锁
+        } else { entry = nullptr; }                              // 没有空闲连接, entry置为nullptr
+        pthread_mutex_unlock(&target->mutex);                    // target解锁
 
         if (!entry) {
             // 没有空闲连接, 设置errno并且返回-1
@@ -1690,15 +1703,19 @@ int Communicator::request_idle_conn(CommSession *session, CommTarget *target) {
     // 将连接与新的会话关联
     entry->session = session;
     session->conn = entry->conn;
-    session->seq = entry->seq++; // 递增序列号. 这个序列号对于支持HTTP流水线(pipeline)等场景至关重要，它可以区分同一个连接上多次请求-响应对应的顺序
+    session->seq = entry->seq++;               // 递增序列号. 这个序列号对于支持HTTP流水线(pipeline)等场景至关重要，它可以区分同一个连接上多次请求-响应对应的顺序
     session->msg_out = session->message_out(); // 获取待发送的应用层消息
-    if (session->msg_out) { ret = this->send_message(entry); } // 尝试发送消息
+    if (session->msg_out) {
+        ret = this->send_message(entry); // 尝试发送消息
+    } else {
+        abort();
+    }
 
     if (ret < 0) {
         entry->error = errno;
         mpoller_del(entry->sockfd, this->mpoller); // 从多路复用器中移除
-        entry->state = CONN_STATE_ERROR; // 标记为错误状态
-        ret = 1; // 注意：这里返回1代表一种需要上层处理的错误
+        entry->state = CONN_STATE_ERROR;           // 标记为错误状态
+        ret = 1;                                   // 注意：这里返回1代表一种需要上层处理的错误
     }
 
     pthread_mutex_unlock(&entry->mutex);
@@ -1714,13 +1731,13 @@ int Communicator::request_new_conn(CommSession *session, CommTarget *target) {
         entry->mpoller = this->mpoller;
         session->conn = entry->conn; // 将当前会话（CommSession）与连接条目中代表物理连接的对象（CommConnection）关联起来
         session->seq = entry->seq++; // 设置并递增序列号
-        const poller_data data{
+        poller_data data{
             .operation = PD_OP_CONNECT, // 设置操作类型为“连接”
             .fd = entry->sockfd,
             .ssl = nullptr,
             .context = entry // 传入连接上下文
         };
-        const int timeout = session->target->connect_timeout; // 获取连接超时时间
+        const int timeout = session->target->connect_timeout;              // 获取连接超时时间
         if (mpoller_add(&data, timeout, this->mpoller) >= 0) { return 0; } // 设置监听
         // 监听设置失败, 释放entry
         release_conn(entry);
@@ -1785,17 +1802,17 @@ int Communicator::bind(CommService *service) {
     if (sockfd >= 0) {
         // 监听成功
         service->listen_fd = sockfd; // 记录监听sock
-        service->ref = 1; // 初始化service引用为1
+        service->ref = 1;            // 初始化service引用为1
         poller_data data{
             .fd = sockfd,
             .context = service,
             .result = nullptr
         };
         if (service->reliable) {
-            data.operation = PD_OP_LISTEN; // 可靠连接，如TCP
+            data.operation = PD_OP_LISTEN;             // 可靠连接，如TCP
             data.accept = Communicator::create_target; // 设置连接接受回调
         } else {
-            data.operation = PD_OP_RECVFROM; // 非可靠连接，如UDP
+            data.operation = PD_OP_RECVFROM;        // 非可靠连接，如UDP
             data.recvfrom = Communicator::recvfrom; // 设置数据报接收回调
         }
         // 注册到mpoller
@@ -1817,7 +1834,7 @@ void Communicator::unbind(CommService *service) {
         // service->listen_fd本身已经失效（如意外关闭）或者整个Communicator正在关闭或销毁
         /* Error occurred on listen_fd or Communicator::deinit() called. */
         this->shutdown_service(service); // 关闭service
-        errno = errno_bak; // 恢复errno
+        errno = errno_bak;               // 恢复errno
     }
 }
 
@@ -1829,18 +1846,20 @@ int Communicator::reply_reliable(CommSession *session, CommTarget *target) {
     // target往往表示一个远端服务点(如特定的ip和端口),
     // 其idle_list维护了到该端点的可复用空闲TCP连接
     if (!list_is_empty(&target->idle_list)) {
-        list_head *pos = target->idle_list.next; // 获取空闲链表中第一个链表节点
+        list_head *pos = target->idle_list.next;                            // 获取空闲链表中第一个链表节点
         CommConnEntry *entry = list_entry(pos, struct CommConnEntry, list); // 获取该链表节点所在的CommConnEntry
-        list_del(pos); // 将该空闲节点从空闲链表中删除
+        list_del(pos);                                                      // 将该空闲节点从空闲链表中删除
 
         session->msg_out = session->message_out(); // 获取待发送的消息
-        if (session->msg_out) { ret = this->send_message(entry); } // 尝试发送
+        if (session->msg_out) {
+            ret = this->send_message(entry); // 尝试发送
+        }
 
         if (ret < 0) {
-            entry->error = errno; // 记录错误码
+            entry->error = errno;                      // 记录错误码
             mpoller_del(entry->sockfd, this->mpoller); // 从多路复用器中移除监听
-            entry->state = CONN_STATE_ERROR; // 标记连接状态为错误
-            ret = 1; // 返回1表示需要特殊处理的错误
+            entry->state = CONN_STATE_ERROR;           // 标记连接状态为错误
+            ret = 1;                                   // 返回1表示需要特殊处理的错误
         }
     } else { errno = ENOENT; } // 没有可复用的连接
 
@@ -1864,9 +1883,9 @@ int Communicator::reply_message_unreliable(CommConnEntry *entry) {
 
     if (cnt > 0) {
         const msghdr message = {
-            .msg_name = entry->target->addr, // 目标地址（如IP和端口）
+            .msg_name = entry->target->addr,       // 目标地址（如IP和端口）
             .msg_namelen = entry->target->addrlen, // 地址长度
-            .msg_iov = vectors, // 指向iovec数组的指针
+            .msg_iov = vectors,                    // 指向iovec数组的指针
 #ifdef __linux__
             .msg_iovlen = static_cast<size_t>(cnt), // iovec数组的有效长度
 #else
@@ -1897,7 +1916,7 @@ int Communicator::reply_unreliable(CommSession *session, CommTarget *target) {
         }
         // 消息发送失败, 释放连接
         release_conn(entry);
-        dynamic_cast<CommServiceTarget *>(target)->decref(); // 减少target的引用计数
+        static_cast<CommServiceTarget *>(target)->decref(); // 减少target的引用计数
     } else { errno = ENOENT; }
     // 出错
     return -1;
@@ -1921,7 +1940,7 @@ int Communicator::reply(CommSession *session) {
     }
 
     const int errno_bak = errno;
-    auto *target = dynamic_cast<CommServiceTarget *>(session->target);
+    auto *target = static_cast<CommServiceTarget *>(session->target);
     if (target->service->reliable) {
         // TCP连接回复
         ret = this->reply_reliable(session, target);
@@ -1985,7 +2004,7 @@ int Communicator::shutdown(CommSession *session) {
         return -1;
     }
 
-    CommServiceTarget *target = dynamic_cast<CommServiceTarget *>(session->target);
+    CommServiceTarget *target = static_cast<CommServiceTarget *>(session->target);
     if (session->msg_out || !target->shutdown()) {
         // session->msg_out存在: 表示当前会话还有待发送的回复消息未处理. 贸然关闭连接可能会导致数据丢失或协议错误
         // target->shutdown() 返回0: 当前连接状态不允许立即关闭(例如, 可能还有数据在传输途中, 或连接正在被其他逻辑引用)
@@ -2036,7 +2055,7 @@ int Communicator::io_bind(IOService *service) {
                 .operation = PD_OP_EVENT, // 标明这是自定义事件
                 .fd = event_fd,
                 .event = IOService::aio_finish, // 事件就绪后的回调函数
-                .context = service, // 回调函数的上下文
+                .context = service,             // 回调函数的上下文
                 .result = nullptr
             };
             // 注册到mpoller
@@ -2061,7 +2080,7 @@ void Communicator::io_unbind(IOService *service) {
         //      2. 整个 Communicator正在关闭或销毁（例如在 Communicator::deinit被调用时，可能会先停止 mpoller）
         /* Error occurred on event_fd or Communicator::deinit() called. */
         this->shutdown_io_service(service); // 强制关闭IOService
-        errno = errno_bak; // 恢复errno
+        errno = errno_bak;                  // 恢复errno
     }
 }
 
