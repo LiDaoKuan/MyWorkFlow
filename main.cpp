@@ -109,17 +109,18 @@ int test(int argc, char *argv[]) {
         }
 
         std::string url = scheme + "127.0.0.1:" + std::to_string(port) + "/" + buf;
-        WFHttpTask *task = WFTaskFactory::create_http_task(url, 0, 0,
-                                                           [](WFHttpTask *task) {
-                                                               auto *resp = task->get_resp();
-                                                               if (strcmp(resp->get_status_code(), "200") == 0) {
-                                                                   std::string body = protocol::HttpUtil::decode_chunked_body(resp);
-                                                                   fwrite(body.c_str(), body.size(), 1, stdout);
-                                                                   printf("\n");
-                                                               } else {
-                                                                   printf("%s %s\n", resp->get_status_code(), resp->get_reason_phrase());
-                                                               }
-                                                           });
+        WFHttpTask *task =
+            WFTaskFactory::create_http_task(url, 0, 0,
+                                            [](WFHttpTask *task) {
+                                                auto *resp = task->get_resp();
+                                                if (strcmp(resp->get_status_code(), "200") == 0) {
+                                                    std::string body = protocol::HttpUtil::decode_chunked_body(resp);
+                                                    fwrite(body.c_str(), body.size(), 1, stdout);
+                                                    printf("\n");
+                                                } else {
+                                                    printf("%s %s\n", resp->get_status_code(), resp->get_reason_phrase());
+                                                }
+                                            });
 
         return task;
     };

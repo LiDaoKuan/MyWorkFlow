@@ -332,7 +332,7 @@ public:
     // 创建一个动态任务, 其实际要执行的具体子任务可以在运行时根据条件动态生成(调用传入的用于创建任务的函数 creat )
     static WFDynamicTask *create_dynamic_task(dynamic_create_t create);
 
-    // 创建一个重复器任务, 能够根据预设逻辑循环执行一系列操作, 直到满足特定条件
+    // 创建一个重复任务, 能够根据预设逻辑循环执行一系列操作, 直到满足特定条件
     static WFRepeaterTask *create_repeater_task(repeated_create_t create, repeater_callback_t callback) {
         return new WFRepeaterTask(std::move(create), std::move(callback));
     }
