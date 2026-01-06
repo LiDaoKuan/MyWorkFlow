@@ -1416,7 +1416,6 @@ int poller_del(int fd, poller_t *poller) {
 
         node->error = 0;
         node->state = PR_ST_DELETED;
-        printf("--------------------poller_del() called---------------------------\n");
         stopped = poller->stopped;
         if (!stopped) {
             // 如果 poller 线程仍在运行（!stopped）

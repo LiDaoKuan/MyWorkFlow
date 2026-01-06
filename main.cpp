@@ -1,8 +1,8 @@
-#include <signal.h>
+#include <csignal>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include <utility>
 #include <string>
 #include "HttpMessage.h"
@@ -17,7 +17,7 @@ using namespace protocol;
 void pread_callback(WFFileIOTask *task) {
     FileIOArgs *args = task->get_args();
     long ret = task->get_retval();
-    HttpResponse *resp = (HttpResponse *)task->user_data;
+    auto *resp = static_cast<HttpResponse *>(task->user_data);
 
     close(args->fd);
     if (task->get_state() != WFT_STATE_SUCCESS || ret < 0) {
@@ -35,7 +35,9 @@ void process(WFHttpTask *server_task, const char *root) {
     const char *p = uri;
 
     printf("Request-URI: %s\n", uri);
-    while (*p && *p != '?') p++;
+    while (*p && *p != '?') {
+        p++;
+    }
 
     std::string abs_path(uri, p - uri);
     abs_path = root + abs_path;
@@ -106,7 +108,7 @@ int main(int argc, char *argv[]) {
         scanf("%1023s", buf);
         if (*buf == '\0') {
             printf("\n");
-            return NULL;
+            return nullptr;
         }
 
         std::string url = scheme + "127.0.0.1:" + std::to_string(port) + "/" + buf;

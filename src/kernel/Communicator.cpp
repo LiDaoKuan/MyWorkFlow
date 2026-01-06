@@ -520,7 +520,7 @@ int Communicator::send_message_sync(iovec io_vec[], int cnt, CommConnEntry *entr
             }
         }
         io_vec += i;
-        cnt -= 1;
+        cnt -= i;
     }
     CommService *service = entry->service;
     if (service) {
@@ -644,9 +644,6 @@ int Communicator::send_message(CommConnEntry *entry) const {
     cnt = this->send_message_sync(io_vec, cnt, entry);
     // cnt>0: 此时cnt表示剩余未写入的io_vec数, 可能因为缓冲区已满, 导致部分iovec没有被写入
     if (cnt <= 0) {
-        if (cnt == -1) {
-            return -1; // DEBUG
-        }
         // 出错, 返回错误码
         return cnt;
     }
@@ -1708,6 +1705,7 @@ int Communicator::request_idle_conn(CommSession *session, CommTarget *target) {
     if (session->msg_out) {
         ret = this->send_message(entry); // 尝试发送消息
     } else {
+        printf("error: no message_out");
         abort();
     }
 
