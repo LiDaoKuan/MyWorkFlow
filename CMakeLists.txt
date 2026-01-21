@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 4.0)
 project(myWorkFlow)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_BUILD_TYPE Debug)
 # 可选：为Debug模式添加更具体的选项（GDB友好）

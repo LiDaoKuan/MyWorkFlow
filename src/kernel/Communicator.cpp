@@ -317,7 +317,7 @@ int CommService::drain(const int max) {
         // 设置连接状态为关闭
         entry->state = CONN_STATE_CLOSING;
     }
-    pthread_mutex_unlock(&entry->mutex);
+    pthread_mutex_unlock(&this->mutex);
     errno = errno_bak; // 恢复errno
     return cnt;        // 返回关闭的连接数量
 }

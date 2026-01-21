@@ -28,4 +28,4 @@ public:
     virtual ~WFDnsClient() = default;
 };
 
-#endif //MYWORKFLOW_WFDNSCLIENT_H
+#endif // MYWORKFLOW_WFDNSCLIENT_H

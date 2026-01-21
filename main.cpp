@@ -1,8 +1,8 @@
-#include <csignal>
+#include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <cstdlib>
-#include <cstdio>
+#include <stdlib.h>
+#include <stdio.h>
 #include <utility>
 #include <string>
 #include "HttpMessage.h"
@@ -17,15 +17,14 @@ using namespace protocol;
 void pread_callback(WFFileIOTask *task) {
     FileIOArgs *args = task->get_args();
     long ret = task->get_retval();
-    auto *resp = static_cast<HttpResponse *>(task->user_data);
+    HttpResponse *resp = (HttpResponse *)task->user_data;
 
     close(args->fd);
     if (task->get_state() != WFT_STATE_SUCCESS || ret < 0) {
         resp->set_status_code("503");
         resp->append_output_body("<html>503 Internal Server Error.</html>");
-    } else /* Use '_nocopy' carefully. */ {
+    } else /* Use '_nocopy' carefully. */
         resp->append_output_body_nocopy(args->buf, ret);
-    }
 }
 
 void process(WFHttpTask *server_task, const char *root) {
@@ -35,13 +34,13 @@ void process(WFHttpTask *server_task, const char *root) {
     const char *p = uri;
 
     printf("Request-URI: %s\n", uri);
-    while (*p && *p != '?') {
+    while (*p && *p != '?')
         p++;
-    }
 
     std::string abs_path(uri, p - uri);
     abs_path = root + abs_path;
-    if (abs_path.back() == '/') abs_path += "index.html";
+    if (abs_path.back() == '/')
+        abs_path += "index.html";
 
     resp->add_header_pair("Server", "Sogou C++ Workflow Server");
 
@@ -101,14 +100,14 @@ int main(int argc, char *argv[]) {
     }
 
     /* Test the server. */
-    auto &&create = [&scheme, port](WFRepeaterTask *)-> SubTask * {
+    auto &&create = [&scheme, port](WFRepeaterTask *) -> SubTask * {
         char buf[1024];
         *buf = '\0';
         printf("Input file name: (Ctrl-D to exit): ");
         scanf("%1023s", buf);
         if (*buf == '\0') {
             printf("\n");
-            return nullptr;
+            return NULL;
         }
 
         std::string url = scheme + "127.0.0.1:" + std::to_string(port) + "/" + buf;
@@ -137,5 +136,6 @@ int main(int argc, char *argv[]) {
     wg.wait();
 
     server.stop();
+
     return 0;
 }

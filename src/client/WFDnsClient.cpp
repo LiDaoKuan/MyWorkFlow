@@ -31,7 +31,7 @@
 
 using namespace protocol;
 
-using DnsCtx = std::function<void (WFDnsTask *)>;
+using DnsCtx = std::function<void(WFDnsTask *)>;
 using ComplexTask = WFComplexClientTask<DnsRequest, DnsResponse, DnsCtx>;
 
 class DnsParams {
@@ -259,7 +259,7 @@ int WFDnsClient::init(const std::string &url, const std::string &search_list,
     this->params = new DnsParams;
     DnsParams::dns_params *dns_params_ = static_cast<DnsParams *>(this->params)->get_params();
     // 设置参数（带边界检查）
-    dns_params_->uris = std::move(uris);                                         //设置服务器列表
+    dns_params_->uris = std::move(uris);                                         // 设置服务器列表
     dns_params_->search_list = StringUtil::split_filter_empty(search_list, ','); // 拆分搜索域
     dns_params_->ndots = ndots > 15 ? 15 : ndots;                                // 限制ndots最大值为15
     dns_params_->attempts = attempts > 5 ? 5 : attempts;                         // 限制尝试次数最大为15
