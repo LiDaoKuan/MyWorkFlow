@@ -308,7 +308,7 @@ private:
     virtual void wait() = 0;
 
 public:
-    virtual ~CommEventHandler();
+    virtual ~CommEventHandler() = default;
     friend class Communicator;
 };
 
