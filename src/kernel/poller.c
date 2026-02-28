@@ -1033,7 +1033,7 @@ static void __poller_set_timer(poller_t *poller) {
 }
 
 /* 核心事件循环函数. 处理事件分发 */
-static void *__poller_thread_routine(void *arg) {
+static void *poller_thread_routine(void *arg) {
     poller_t *poller = (poller_t *)arg; // 传入参数
     __poller_event_t events[POLLER_EVENTS_MAX]; // 存储epoll监听到的事件
     struct __poller_node time_node;
@@ -1215,7 +1215,7 @@ int poller_start(poller_t *poller) {
     pthread_mutex_lock(&poller->mutex);
     if (__poller_open_pipe(poller) >= 0) {
         // 如果管道创建成功。则开启poller线程
-        ret = pthread_create(&tid, NULL, __poller_thread_routine, poller);
+        ret = pthread_create(&tid, NULL, poller_thread_routine, poller);
         if (ret == 0) {
             // 线程创建成功
             poller->tid = tid;
@@ -1616,7 +1616,7 @@ void poller_stop(poller_t *poller) {
     LIST_HEAD(node_list); // 初始化
     void *p = NULL;
     // 向管道的写端写入一个 NULL指针。这是一个特殊的信号，用于唤醒阻塞在 epoll_wait上的 poller 线程，告知其应准备退出事件循环。
-    // 在 __poller_thread_routine 中，读取到 NULL指针会触发退出逻辑
+    // 在 poller_thread_routine 中，读取到 NULL指针会触发退出逻辑
     write(poller->pipe_wr, &p, sizeof(void *));
     // 阻塞当前线程，直到 poller 线程完全终止。确保了 poller 线程的事件循环已停止，不会再有新的异步操作产生
     pthread_join(poller->tid, NULL);

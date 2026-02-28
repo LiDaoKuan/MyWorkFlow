@@ -308,7 +308,7 @@ public:
 
     [[nodiscard]] const ARGS *get_args() const { return &this->args; }
 
-    // 获取IO操作结果(如实际读取/写入的字节数). 仅在任务成功(WFT_STATE_SUCCESS)时有意义
+    // 获取IO操作结果(实际读取/写入的字节数). 仅在任务成功(WFT_STATE_SUCCESS)时有意义
     [[nodiscard]] long get_retval() const {
         if (this->state == WFT_STATE_SUCCESS) {
             return this->get_res();

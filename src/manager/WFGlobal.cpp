@@ -421,7 +421,7 @@ class __CommManager {
 public:
     static __CommManager *get_instance() {
         static __CommManager kInstance;
-        __CommManager::created_ = true; // 标记通信系统已创建
+        __CommManager::created_ = true; // 标记调度器已创建
         return &kInstance;
     }
 

@@ -353,7 +353,7 @@ inline std::future_status WFFacilities::WaitGroup::wait(int timeout) const {
 }
 
 /**
- * @brief 原子增加计数器
+ * @brief 原子增加计数器（实际上也可以传入负数执行减小操作）
  *
  * 线程安全实现:
  *   - 使用原子操作修改nleft

@@ -1,10 +1,12 @@
-#include <signal.h>
+#include <csignal>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include <utility>
 #include <string>
+#include <filesystem>
+#include <iostream>
 #include "HttpMessage.h"
 #include "HttpUtil.h"
 #include "WFHttpServer.h"
@@ -34,8 +36,9 @@ void process(WFHttpTask *server_task, const char *root) {
     const char *p = uri;
 
     printf("Request-URI: %s\n", uri);
-    while (*p && *p != '?')
+    while (*p && *p != '?') {
         p++;
+    }
 
     std::string abs_path(uri, p - uri);
     abs_path = root + abs_path;
@@ -66,7 +69,7 @@ void process(WFHttpTask *server_task, const char *root) {
 
 static WFFacilities::WaitGroup wait_group(1);
 
-void sig_handler(int signo) {
+void sig_handler(int sign) {
     wait_group.done();
 }
 
@@ -81,7 +84,9 @@ int main(int argc, char *argv[]) {
 
     unsigned short port = atoi(argv[1]);
     const char *root = (argc >= 3 ? argv[2] : ".");
-    auto &&proc = std::bind(process, std::placeholders::_1, root);
+    auto &&proc = [root]<typename T0>(T0 &&PH1) {
+        process(std::forward<T0>(PH1), root);
+    };
     WFHttpServer server(proc);
     std::string scheme;
     int ret;
@@ -127,8 +132,7 @@ int main(int argc, char *argv[]) {
     };
 
     WFFacilities::WaitGroup wg(1);
-    WFRepeaterTask *repeater;
-    repeater = WFTaskFactory::create_repeater_task(create, [&wg](WFRepeaterTask *) {
+    WFRepeaterTask *repeater = WFTaskFactory::create_repeater_task(create, [&wg](WFRepeaterTask *) {
         wg.done();
     });
 
