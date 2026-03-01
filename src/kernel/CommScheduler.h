@@ -38,7 +38,7 @@ public:
     [[nodiscard]] size_t get_cur_load() const { return this->cur_load; }
 
 private:
-    // 核心调度算法接口. 由子类实现
+    // 指定时间内获取连接. 由子类实现
     virtual CommTarget *acquire(int wait_timeout) = 0;
 
 protected:

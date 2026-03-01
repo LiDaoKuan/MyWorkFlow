@@ -1241,7 +1241,7 @@ void Communicator::handle_poller_result(poller_result *res) {
     free(res);
 }
 
-// 从消息队列中持续获取IO事件并且进行分发处理
+// 从消息队列中持续获取IO事件并且进行分发和处理
 void Communicator::handler_thread_routine(void *context) {
     auto comm = static_cast<Communicator *>(context);
     void *msg;
@@ -1522,7 +1522,7 @@ int Communicator::create_handler_threads(size_t handler_threads) {
         .routine = Communicator::handler_thread_routine,
         .context = this
     };
-    // 创建线程池
+    // 创建线程池（专门用于处理IO事件结果）
     this->thrdpool = thrdpool_create(handler_threads, 0);
     if (this->thrdpool) {
         size_t i;
@@ -1720,7 +1720,7 @@ int Communicator::request_idle_conn(CommSession *session, CommTarget *target) {
     return ret;
 }
 
-// 客户端发起新连接
+// 客户端发起新连接(异步)
 int Communicator::request_new_conn(CommSession *session, CommTarget *target) {
     // 发起连接并且获取连接上下文(CommConnEntry)
     CommConnEntry *entry = Communicator::launch_conn(session, target);

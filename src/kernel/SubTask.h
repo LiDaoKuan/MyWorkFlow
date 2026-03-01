@@ -51,7 +51,7 @@ public:
 private:
     // 关键枢纽. 指向父任务(通常是ParallelTask), 用于在子任务完成时向上回调.
     class ParallelTask *parent_;
-    // 用户数据指针. 提供get/set_pointer()方法, 让任务能携带任意用户数据
+    // 指向管理该 SubTask 的 SeriesWork
     void *pointer_;
     /* 使用pointer指针注意事项:
      * 1. 你需要确保在回调函数中，将 void*指针转换回它原本的、正确的类型

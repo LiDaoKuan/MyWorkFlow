@@ -185,7 +185,7 @@ protected:
     void clear_resp() {
         protocol::ProtocolMessage head(std::move(this->resp));                    // 保留原协议头
         this->resp.~RESP();                                                       // 显式调用析构函数
-        new (&this->resp) RESP;                                                   // 使用placement new
+        new(&this->resp) RESP;                                                    // 使用placement new
         *static_cast<protocol::ProtocolMessage *>(&this->resp) = std::move(head); //
     }
 
@@ -386,19 +386,19 @@ template <class REQ, class RESP, typename CTX>
 void WFComplexClientTask<REQ, RESP, CTX>::dispatch() {
     switch (this->state) //
     {
-    case WFT_STATE_UNDEFINED:      // 未定义状态.
-        if (this->check_request()) // 检查参数是否合法
+    case WFT_STATE_UNDEFINED:      // 第一次请求时是未定义状态.
+        if (this->check_request()) // 检查参数是否合法，此处直接return true。如果是mysql协议这里更复杂，可以在子类重写
         {
-            if (this->route_result_.request_object) // 检查是否已有有效的请求对象
+            if (this->route_result_.request_object) // 检查是否已有有效的请求对象。第一次请求走到这里，request_object是空的，直接到下面产生router_task_
             {
-                // 以上两步都为true, 则穿透到成功状态
-            case WFT_STATE_SUCCESS: //
+            case WFT_STATE_SUCCESS: // 第二次请求就直接success了
                 this->set_request_object(this->route_result_.request_object);
-                // 职责分离: 基类处理通用网络逻辑, 派生类处理路由等高级特性
-                this->WFClientTask<REQ, RESP>::dispatch(); // 委托父类处理实际的网络请求
+                // 此处实际上调用了WFClientTask的父类的父类CommRequest的dispatch
+                // 调用scheduler->request
+                this->WFClientTask<REQ, RESP>::dispatch();
                 return;
             }
-            // 没有有效的请求对象, 创建路由任务
+            // 没有有效的请求对象, 产生一个router_task_插入到前面去做dns解析
             router_task_ = this->route();
             series_of(this)->push_front(this);         // 将当前任务放入序列
             series_of(this)->push_front(router_task_); // 将路由任务放在当前任务之前
@@ -654,7 +654,7 @@ public:
 
 // 创建GO任务, 传入队列名
 template <class FUNC, class... ARGS>
-WFGoTask *WFTaskFactory::create_go_task(const std::string &queue_name, FUNC &&func, ARGS &&...args) {
+WFGoTask *WFTaskFactory::create_go_task(const std::string &queue_name, FUNC &&func, ARGS &&... args) {
     auto &&tmp = std::bind(std::forward<FUNC>(func), std::forward<ARGS>(args)...);
     return new __WFGoTask(WFGlobal::get_exec_queue(queue_name),
                           WFGlobal::get_compute_executor(),
@@ -665,7 +665,7 @@ WFGoTask *WFTaskFactory::create_go_task(const std::string &queue_name, FUNC &&fu
 template <class FUNC, class... ARGS>
 WFGoTask *WFTaskFactory::create_timedgo_task(time_t seconds, long nanoseconds,
                                              const std::string &queue_name,
-                                             FUNC &&func, ARGS &&...args) {
+                                             FUNC &&func, ARGS &&... args) {
     auto &&tmp = std::bind(std::forward<FUNC>(func), std::forward<ARGS>(args)...);
     return new __WFTimedGoTask(seconds, nanoseconds,
                                WFGlobal::get_exec_queue(queue_name),
@@ -676,7 +676,7 @@ WFGoTask *WFTaskFactory::create_timedgo_task(time_t seconds, long nanoseconds,
 // 创建GO任务, 直接传入任务的执行单元的任务的队列
 template <class FUNC, class... ARGS>
 WFGoTask *WFTaskFactory::create_go_task(ExecQueue *queue, Executor *executor,
-                                        FUNC &&func, ARGS &&...args) {
+                                        FUNC &&func, ARGS &&... args) {
     auto &&tmp = std::bind(std::forward<FUNC>(func), std::forward<ARGS>(args)...);
     return new __WFGoTask(queue, executor, std::move(tmp));
 }
@@ -685,14 +685,14 @@ WFGoTask *WFTaskFactory::create_go_task(ExecQueue *queue, Executor *executor,
 template <class FUNC, class... ARGS>
 WFGoTask *WFTaskFactory::create_timedgo_task(time_t seconds, long nanoseconds,
                                              ExecQueue *queue, Executor *executor,
-                                             FUNC &&func, ARGS &&...args) {
+                                             FUNC &&func, ARGS &&... args) {
     auto &&tmp = std::bind(std::forward<FUNC>(func), std::forward<ARGS>(args)...);
     return new __WFTimedGoTask(seconds, nanoseconds, queue, executor, std::move(tmp));
 }
 
 // 重置已有 Go 任务的执行函数
 template <class FUNC, class... ARGS>
-void WFTaskFactory::reset_go_task(WFGoTask *task, FUNC &&func, ARGS &&...args) {
+void WFTaskFactory::reset_go_task(WFGoTask *task, FUNC &&func, ARGS &&... args) {
     auto &&tmp = std::bind(std::forward<FUNC>(func), std::forward<ARGS>(args)...);
     static_cast<__WFGoTask *>(task)->set_go_func(std::move(tmp));
 }

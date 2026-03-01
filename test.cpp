@@ -1,158 +1,62 @@
 #include <iostream>
 #include <unistd.h>
-#include <cstdint>
+#include <WFTaskFactory.h>
+#include <WFFacilities.h>
+#include <csignal>
 
-namespace TEST1 {
-    class Father {
-    public:
-        virtual ~Father() = default;
-        int a = 12;
+namespace HTTP_TEST {
+    // 发起一个http请求
 
-        virtual void func() {
-            this->func1();
-            this->func2();
-        }
+    using namespace protocol;
 
-        virtual void func1() {
-            std::cout << "Father::func1()" << std::endl;
-        }
+#define REDIRECT_MAX 4
+#define RETRY_MAX 2
 
-        virtual void func2() {
-            std::cout << "Father::func2()" << std::endl;
-        }
-    };
+    void http_callback(WFHttpTask *task) {
+        HttpResponse *resp = task->get_resp();
+        fprintf(stderr, "Http status : %s\n", resp->get_status_code());
 
-    class Child : public Father {
-    public:
-        int b{0};
+        // response body
+        const void *body;
+        size_t body_len;
+        resp->get_parsed_body(&body, &body_len);
 
-        Child() {
-            b = 10;
-        }
+        // write body to file
+        FILE *fp = fopen("res.txt", "w");
+        fwrite(body, 1, body_len, fp);
+        fclose(fp);
 
-        void func() override {
-            this->func1();
-            this->func2();
-        }
-
-        void func2() override {
-            std::cout << "Child::func2()" << std::endl;
-        }
-
-        ~Child() override = default;
-    };
-
-    void Test() {
-        Father *b = new Child();
-        b->func();
-        delete b;
+        fprintf(stderr, "write file done");
     }
-}
 
-namespace TEST2 {
-    void Test() {
-        const char *str = " 2030300 This is test";
-        char *ptr;
-        unsigned long ret;
+    static WFFacilities::WaitGroup wait_group(1);
 
-        ret = strtoul(str, &ptr, 16);
-        printf("数字（无符号长整数）是 %lu\n", ret);
-        printf("字符串部分是 |%s|\n", ptr);
-
-        printf("%lu", static_cast<size_t>(-1));
+    void sig_handler(int signo) {
+        wait_group.done();
     }
-}
 
-namespace TEST3 {
-    class myClass {
-    public:
-        int a = 0;
-
-        void test() {
-            a = 10;
-            std::cout << "myclass::test" << std::endl;
-        }
-
-    protected:
-        ~myClass() {
-            delete this;
-            std::cout << "~myClass() called" << std::endl;
-        }
-    };
-
-    class myClass2 : public myClass {
-    public:
-        void test() {
-            a = 20;
-            std::cout << "myclass2::test" << std::endl;
-        }
-
-        ~myClass2() { std::cout << "~myClass2() called" << std::endl; }
-    };
-
-    void Test() {}
-}
-
-/*
-namespace TEST4 {
-    void Test() {
-        // 1. 创建文件读取任务
-        FileReadArgs args{"example.txt", 0, 4096}; // 文件名、偏移量、读取长度
-        auto *task = WFTaskFactory::create_file_task(
-            FILE_TASK_READ, // 任务类型
-            &args, // 参数结构体
-            [](WFFileTask<FileReadArgs> *task) {
-                // 2. 在回调函数中处理结果
-                int state = task->get_state();
-                if (state == WFT_STATE_SUCCESS) {
-                    long bytes_read = task->get_retval(); // 实际读取的字节数
-                    fprintf(stderr, "Read %ld bytes from file\n", bytes_read);
-                    // 读取的数据通过 task->get_args()->buf 访问
-                } else {
-                    fprintf(stderr, "File read failed: state=%d, error=%d\n",
-                            state, task->get_error());
-                }
-            }
-            );
-
-        // 3. 启动任务（异步执行）
+    int test() {
+        signal(SIGINT, sig_handler);
+        // logger_initConsoleLogger(stderr);
+        // logger_setLevel(LogLevel_TRACE);
+        std::string url = "http://www.baidu.com";
+        // 通过create_xxx_task创建的对象为任务，一旦创建，必须被启动或取消
+        // 工厂函数创建的对象的生命周期均由内部管理
+        WFHttpTask *task = WFTaskFactory::create_http_task(url,
+                                                           REDIRECT_MAX,
+                                                           RETRY_MAX,
+                                                           http_callback);
+        // 通过start,自行以task为first_task创建一个串行并理解启动任务
+        // 任务start后，http_callback回调前，用户不能再操作该任务
+        // 在一个task被直接或间接 dismiss/start 之后，用户不再拥有其所有权
+        // 此后用户只能在该task的回调函数内部进行操作
         task->start();
-
-        // 主线程可继续执行其他逻辑，不会被文件IO阻塞
-        pause();
+        // 当http_callback任务结束后，任务立即被释放
+        wait_group.wait();
     }
-}*/
-
-namespace TEST5 {
-    static inline void _append_uint8(std::string &s, uint8_t tmp) {
-        // 将tmp转换为C风格字符串(取地址后转为const char*), 然后插入
-        s.append(reinterpret_cast<const char *>(&tmp), sizeof(uint8_t));
-    }
-
-    void test() {
-        std::string str = "123";
-        _append_uint8(str, 100);
-        std::cout << str << std::endl;
-        if (str.at(3) == 100) {
-            std::cout << static_cast<int>(str.at(3)) << std::endl;
-        }
-    }
-};
-
-class Test {
-private:
-    int a = 123;
-    int b = 300;
-
-    virtual int func() {
-        return 0;
-    }
-};
+} // namespace HTTP_TEST
 
 int main() {
-    Test test;
-    void *p = &test;
-    std::cout << "a: " << *static_cast<int *>(p + offsetof(Test, a)) << std::endl;
-    std::cout << "b: " << *static_cast<int *>(p + offsetof(Test, b)) << std::endl;
+    HTTP_TEST::test();
     return 0;
 }

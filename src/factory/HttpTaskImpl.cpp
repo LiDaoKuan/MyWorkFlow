@@ -1363,7 +1363,7 @@ WFHttpTask *WFTaskFactory::create_http_task(const std::string &url,
     auto *task = new ComplexHttpTask(redirect_max,
                                      retry_max,
                                      std::move(callback));
-    // 解析URL（线程安全，内部使用RFC3986标准解析）
+    // 解析URL
     ParsedURI uri;
     URIParser::parse(url, uri);
     // 初始化任务（设置目标地址、协议版本等）

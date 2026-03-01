@@ -66,7 +66,7 @@ protected:
 
 protected:
     int wait_timeout; // 获取连接的超时时间
-    CommSchedObject *object; // 调度目标（如特定服务器连接池）
+    CommSchedObject *object; // 调度对象（如特定服务器连接池）
     CommScheduler *scheduler; // 通信调度器
 
 protected:

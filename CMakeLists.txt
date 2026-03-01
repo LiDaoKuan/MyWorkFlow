@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.31)
 project(myWorkFlow)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -132,7 +132,7 @@ set(SRC
         src/factory/DnsTaskImpl.cpp
 )
 
-add_executable(myWorkFlow main.cpp
+add_executable(myWorkFlow test.cpp
         ${INCLUDE_HEADERS}
         ${PLATFORM_IO_SOURCE}
         ${SRC}

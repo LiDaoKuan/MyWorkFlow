@@ -54,7 +54,7 @@ enum {
 template <class INPUT, class OUTPUT>
 class WFThreadTask : public ExecRequest {
 public:
-    WFThreadTask(ExecQueue *queue, Executor *executor, std::function<void (WFThreadTask<INPUT, OUTPUT> *)> &&cb) :
+    WFThreadTask(ExecQueue *queue, Executor *executor, std::function<void(WFThreadTask<INPUT, OUTPUT> *)> &&cb) :
         ExecRequest(queue, executor), callback(std::move(cb)) {
         this->user_data = nullptr;
         this->state = WFT_STATE_UNDEFINED; // 初始化为未定义状态
@@ -89,7 +89,9 @@ protected:
     SubTask *done() override {
         SeriesWork *series = series_of(this); // 获取任务所属的串行流
 
-        if (this->callback) { this->callback(this); } // 如果有任务完成回调, 先执行回调
+        if (this->callback) {
+            this->callback(this);
+        } // 如果有任务完成回调, 先执行回调
 
         delete this;          // 销毁自身
         return series->pop(); // 返回任务流中的下一个任务
@@ -157,7 +159,6 @@ public:
     // (纯虚函数)获取底层的连接对象, 由具体协议实现
     [[nodiscard]] virtual WFConnection *get_connection() const = 0;
 
-
     /* All in milliseconds. timeout == -1 for unlimited. */
 public:
     // 设置发送超时(毫秒), -1 表示无限制
@@ -173,7 +174,9 @@ public:
     /* Do not reply this request. */
     // (服务器任务)标记无需回复客户端
     void noreply() {
-        if (this->state == WFT_STATE_TOREPLY) { this->state = WFT_STATE_NOREPLY; }
+        if (this->state == WFT_STATE_TOREPLY) {
+            this->state = WFT_STATE_NOREPLY;
+        }
     }
 
     /* Push reply data synchronously. */
@@ -199,12 +202,12 @@ public:
     }
 
 public:
-    void set_prepare(std::function<void (WFNetworkTask<REQ, RESP> *)> prep) {
+    void set_prepare(std::function<void(WFNetworkTask<REQ, RESP> *)> prep) {
         this->prepare = std::move(prep);
     }
 
 public:
-    void set_callback(std::function<void (WFNetworkTask<REQ, RESP> *)> cb) {
+    void set_callback(std::function<void(WFNetworkTask<REQ, RESP> *)> cb) {
         this->callback = std::move(cb);
     }
 
@@ -277,10 +280,10 @@ protected:
     }
 
 protected:
-    std::function<void (WFTimerTask *)> callback; // 任务完成后的回调函数
+    std::function<void(WFTimerTask *)> callback; // 任务完成后的回调函数
 
 public:
-    WFTimerTask(CommScheduler *scheduler, std::function<void (WFTimerTask *)> cb) :
+    WFTimerTask(CommScheduler *scheduler, std::function<void(WFTimerTask *)> cb) :
         SleepRequest(scheduler), callback(std::move(cb)) {
         this->user_data = nullptr;
         this->state = WFT_STATE_UNDEFINED; // 初始化状态为未定义
@@ -312,13 +315,15 @@ public:
     [[nodiscard]] long get_retval() const {
         if (this->state == WFT_STATE_SUCCESS) {
             return this->get_res();
-        } else { return -1; }
+        } else {
+            return -1;
+        }
     }
 
     [[nodiscard]] int get_state() const { return this->state; }
     [[nodiscard]] int get_error() const { return this->error; }
 
-    void set_callback(std::function<void (WFFileTask<ARGS> *)> cb) { this->callback = std::move(cb); }
+    void set_callback(std::function<void(WFFileTask<ARGS> *)> cb) { this->callback = std::move(cb); }
 
 public:
     void *user_data; // 指向对象的指针
@@ -340,10 +345,10 @@ protected:
     // 对于读文件操作，可能是包含文件描述符、偏移量、读取长度等参数的结构体.
     // 对于写文件操作，可能是包含文件描述符、文件偏移量、写缓冲区位置等参数的结构体
     ARGS args;
-    std::function<void (WFFileTask<ARGS> *)> callback; // 任务完成的回调
+    std::function<void(WFFileTask<ARGS> *)> callback; // 任务完成的回调
 
 public:
-    WFFileTask(IOService *service, std::function<void (WFFileTask<ARGS> *)> &&cb) :
+    WFFileTask(IOService *service, std::function<void(WFFileTask<ARGS> *)> &&cb) :
         IORequest(service), callback(std::move(cb)) {
         this->user_data = nullptr;
         this->state = WFT_STATE_UNDEFINED;
@@ -380,9 +385,9 @@ protected:
     }
 
     /* 一旦开始调度这个任务, 这个任务会瞬间完成. 并立即进入done()回调阶段(在subtask_done中), 这种设计非常适用于以下场景:
-    * 1.逻辑控制节点: 在复杂的任务流中作为一个信号或开关. 例如, 在某个条件满足后, 通过一个 WFGenericTask 来触发后续一系列任务的执行.
-    * 2.空操作(No-op)任务: 用于占位或保持任务流的结构完整性.
-    * 3.测试与调试: 在原型开发或测试中, 用于模拟一个立即成功或失败的任务. */
+     * 1.逻辑控制节点: 在复杂的任务流中作为一个信号或开关. 例如, 在某个条件满足后, 通过一个 WFGenericTask 来触发后续一系列任务的执行.
+     * 2.空操作(No-op)任务: 用于占位或保持任务流的结构完整性.
+     * 3.测试与调试: 在原型开发或测试中, 用于模拟一个立即成功或失败的任务. */
 
     SubTask *done() override {
         SeriesWork *series = series_of(this);
@@ -418,7 +423,7 @@ public:
     }
 
 public:
-    void set_callback(std::function<void (WFCounterTask *)> cb) { this->callback = std::move(cb); }
+    void set_callback(std::function<void(WFCounterTask *)> cb) { this->callback = std::move(cb); }
 
 protected:
     // 任务调度入口
@@ -436,11 +441,11 @@ protected:
     }
 
 protected:
-    std::atomic<unsigned int> value;                // 原子变量计数器
-    std::function<void (WFCounterTask *)> callback; // 计数完成的回调
+    std::atomic<unsigned int> value;               // 原子变量计数器
+    std::function<void(WFCounterTask *)> callback; // 计数完成的回调
 
 public:
-    WFCounterTask(unsigned int target_value, std::function<void (WFCounterTask *)> &&cb) :
+    WFCounterTask(unsigned int target_value, std::function<void(WFCounterTask *)> &&cb) :
         value(target_value + 1), // 注意此处target_value加了1
         callback(std::move(cb)) {}
 
@@ -465,7 +470,7 @@ public:
     // 接收方获取消息地址
     [[nodiscard]] void **get_mailbox() const { return this->mailbox; }
 
-    void set_callback(std::function<void (WFMailboxTask *)> cb) { this->callback = std::move(cb); }
+    void set_callback(std::function<void(WFMailboxTask *)> cb) { this->callback = std::move(cb); }
 
 protected:
     // 任务调度入口
@@ -479,7 +484,9 @@ protected:
     SubTask *done() override {
         SeriesWork *series = series_of(this);
 
-        if (this->callback) { this->callback(this); }
+        if (this->callback) {
+            this->callback(this);
+        }
 
         delete this;
         return series->pop();
@@ -488,18 +495,18 @@ protected:
 protected:
     void **mailbox; // 消息中转站
     std::atomic<bool> flag;
-    std::function<void (WFMailboxTask *)> callback;
+    std::function<void(WFMailboxTask *)> callback;
 
 public:
     // 使用外部指定的邮箱. 用于多个任务共享同一个邮箱的场景, 实现广播或共享消息
-    WFMailboxTask(void **mailbox, std::function<void (WFMailboxTask *)> &&cb) :
+    WFMailboxTask(void **mailbox, std::function<void(WFMailboxTask *)> &&cb) :
         flag(false),
         callback(std::move(cb)) {
         this->mailbox = mailbox;
     }
 
     // 使用内部邮箱(user_data). 用于点对点单次消息传递, 消息存储在任务自身的user_data中
-    explicit WFMailboxTask(std::function<void (WFMailboxTask *)> &&cb) :
+    explicit WFMailboxTask(std::function<void(WFMailboxTask *)> &&cb) :
         flag(false), callback(std::move(cb)) {
         this->mailbox = &this->user_data;
     }
@@ -543,7 +550,7 @@ public:
     [[nodiscard]] void *get_message() const { return this->message; }
 
 public:
-    void set_callback(std::function<void (WFSelectorTask *)> cb) {
+    void set_callback(std::function<void(WFSelectorTask *)> cb) {
         this->callback = std::move(cb);
     }
 
@@ -568,19 +575,21 @@ protected:
     SubTask *done() override {
         SeriesWork *series = series_of(this);
 
-        if (this->callback) { this->callback(this); }
+        if (this->callback) {
+            this->callback(this);
+        }
 
         return series->pop();
     }
 
 protected:
-    std::atomic<void *> message;                     // 存储被选中的消息. 通过原子操作确保只有一个提交者能成功设置消息.
-    std::atomic<bool> flag;                          // 任务完成同步标志. 用于协调submit()和dispatch()的完成信号, 确保只触发一次 subtask_done().
-    std::atomic<size_t> nleft;                       // 剩余候选计数器.无论是通过submit提交消息, 还是通过dispatch进行调度, 每次操作都会递减nleft. 当 nleft减至 0 时, 意味着所有候选操作都已执行完毕
-    std::function<void (WFSelectorTask *)> callback; // 任务完成后的回调函数
+    std::atomic<void *> message;                    // 存储被选中的消息. 通过原子操作确保只有一个提交者能成功设置消息.
+    std::atomic<bool> flag;                         // 任务完成同步标志. 用于协调submit()和dispatch()的完成信号, 确保只触发一次 subtask_done().
+    std::atomic<size_t> nleft;                      // 剩余候选计数器.无论是通过submit提交消息, 还是通过dispatch进行调度, 每次操作都会递减nleft. 当 nleft减至 0 时, 意味着所有候选操作都已执行完毕
+    std::function<void(WFSelectorTask *)> callback; // 任务完成后的回调函数
 
 public:
-    WFSelectorTask(size_t candidates, std::function<void (WFSelectorTask *)> &&cb) :
+    WFSelectorTask(size_t candidates, std::function<void(WFSelectorTask *)> &&cb) :
         message(nullptr), flag(false),
         nleft(candidates + 1), // 注意此处是candidates+1
         callback(std::move(cb)) {}
@@ -656,7 +665,7 @@ public:
     [[nodiscard]] int get_state() const { return this->state; }
     [[nodiscard]] int get_error() const { return this->error; }
 
-    void set_callback(std::function<void (WFGoTask *)> cb) { this->callback = std::move(cb); }
+    void set_callback(std::function<void(WFGoTask *)> cb) { this->callback = std::move(cb); }
 
 public:
     void *user_data;
@@ -665,14 +674,16 @@ protected:
     SubTask *done() override {
         SeriesWork *series = series_of(this);
 
-        if (this->callback) { this->callback(this); }
+        if (this->callback) {
+            this->callback(this);
+        }
 
         delete this;
         return series->pop();
     }
 
 protected:
-    std::function<void (WFGoTask *)> callback;
+    std::function<void(WFGoTask *)> callback;
 
 public:
     WFGoTask(ExecQueue *queue, Executor *executor) :
@@ -693,12 +704,13 @@ public:
         this->create = std::move(_create);
     }
 
-    void set_callback(std::function<void (WFRepeaterTask *)> cb) { this->callback = std::move(cb); }
+    void set_callback(std::function<void(WFRepeaterTask *)> cb) { this->callback = std::move(cb); }
 
 protected:
     // 任务调度入口
     void dispatch() override {
         // 调用用户提供的create函数, 动态创建一个新的子任务. 这个子任务可以是任何SubTask类型, 如HTTP请求、文件操作等
+        // 如果create函数返回nullptr， 说明没有新任务
         SubTask *task = this->create(this);
 
         if (task) {
@@ -715,7 +727,9 @@ protected:
         SeriesWork *series = series_of(this);
         // 检查循环是否已终止, 如果 this->state != WFT_STATE_UNDEFINED, 说明循环已经终止
         if (this->state != WFT_STATE_UNDEFINED) {
-            if (this->callback) { this->callback(this); }
+            if (this->callback) {
+                this->callback(this);
+            }
             delete this;
         }
 
@@ -724,10 +738,10 @@ protected:
 
 protected:
     std::function<SubTask *(WFRepeaterTask *)> create;
-    std::function<void (WFRepeaterTask *)> callback;
+    std::function<void(WFRepeaterTask *)> callback;
 
 public:
-    WFRepeaterTask(std::function<SubTask *(WFRepeaterTask *)> &&create, std::function<void (WFRepeaterTask *)> &&cb) :
+    WFRepeaterTask(std::function<SubTask *(WFRepeaterTask *)> &&create, std::function<void(WFRepeaterTask *)> &&cb) :
         create(std::move(create)), callback(std::move(cb)) {}
 
 protected:
@@ -753,7 +767,7 @@ public:
 
     [[nodiscard]] const SeriesWork *sub_series() const { return this; }
 
-    void set_callback(std::function<void (const WFModuleTask *)> cb) {
+    void set_callback(std::function<void(const WFModuleTask *)> cb) {
         this->callback = std::move(cb);
     }
 
@@ -772,10 +786,10 @@ protected:
 
 protected:
     SubTask *first;
-    std::function<void (const WFModuleTask *)> callback;
+    std::function<void(const WFModuleTask *)> callback;
 
 public:
-    WFModuleTask(SubTask *first, std::function<void (const WFModuleTask *)> &&cb) :
+    WFModuleTask(SubTask *first, std::function<void(const WFModuleTask *)> &&cb) :
         ParallelTask(&this->first, 1), // 初始化ParallelTask，子任务列表指向first
         SeriesWork(first, nullptr),    // 初始化SeriesWork，以first为起始任务
         callback(std::move(cb)) {
@@ -786,10 +800,12 @@ public:
 
 protected:
     ~WFModuleTask() override {
-        if (!this->is_finished()) { this->dismiss_recursive(); }
+        if (!this->is_finished()) {
+            this->dismiss_recursive();
+        }
     }
 };
 
 #include "WFTask.inl"
 
-#endif //MYWORKFLOW_WFTASK_H
+#endif // MYWORKFLOW_WFTASK_H

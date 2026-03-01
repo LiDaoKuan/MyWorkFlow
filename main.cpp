@@ -42,8 +42,7 @@ void process(WFHttpTask *server_task, const char *root) {
 
     std::string abs_path(uri, p - uri);
     abs_path = root + abs_path;
-    if (abs_path.back() == '/')
-        abs_path += "index.html";
+    if (abs_path.back() == '/') { abs_path += "index.html"; }
 
     resp->add_header_pair("Server", "Sogou C++ Workflow Server");
 
@@ -112,7 +111,7 @@ int main(int argc, char *argv[]) {
         scanf("%1023s", buf);
         if (*buf == '\0') {
             printf("\n");
-            return NULL;
+            return nullptr;
         }
 
         std::string url = scheme + "127.0.0.1:" + std::to_string(port) + "/" + buf;

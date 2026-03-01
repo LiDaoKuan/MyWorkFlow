@@ -242,9 +242,9 @@ int URIParser::parse(const char *str, ParsedURI &uri) {
     uri.state = URI_STATE_INVALID; // 初始化URI对象的状态为"无效"。这是一个安全措施，确保在解析失败时uri对象有明确状态
 
     int start_idx[URI_PART_ELEMENTS]{}; // 用于存储URI各个部分的起始索引
-    int end_idx[URI_PART_ELEMENTS]{}; // 用于存储URI各个部分的结束索引
-    int pre_state = URI_SCHEME; // pre_state表示当前解析状态（初始为协议解析）
-    bool in_ipv6 = false; // 标记是否正在解析IPv6地址
+    int end_idx[URI_PART_ELEMENTS]{};   // 用于存储URI各个部分的结束索引
+    int pre_state = URI_SCHEME;         // pre_state表示当前解析状态（初始为协议解析）
+    bool in_ipv6 = false;               // 标记是否正在解析IPv6地址
     int index;
 
     // 找到scheme字段的结束位置
@@ -261,7 +261,7 @@ int URIParser::parse(const char *str, ParsedURI &uri) {
     // 检查是否存在authority部分（即//），并根据情况设置解析状态
     if (str[index] == '/' && str[index + 1] == '/') {
         pre_state = URI_HOST; // 更改当前状态
-        index += 2; // 跳过//
+        index += 2;           // 跳过//
         // 如果下一个字符是[，标记为IPv6地址模式
         if (str[index] == '[') {
             in_ipv6 = true;
@@ -283,29 +283,29 @@ int URIParser::parse(const char *str, ParsedURI &uri) {
                 continue;
             case URI_USERINFO: // 当遇到userinfo分隔符（如@）时，处理用户信息部分.
                 if (str[index + 1] == '[') { in_ipv6 = true; }
-                end_idx[URI_USERINFO] = index; // 标记userinfo结束位置. userinfo格式为username:password@，用于认证信息
+                end_idx[URI_USERINFO] = index;   // 标记userinfo结束位置. userinfo格式为username:password@，用于认证信息
                 start_idx[URI_HOST] = index + 1; // userinfo后面(@符号之后)一般紧跟host字段
-                pre_state = URI_HOST; // 准备解析host字段
+                pre_state = URI_HOST;            // 准备解析host字段
                 continue;
-            case URI_HOST: // 处理host部分和端口分隔符
+            case URI_HOST:                                      // 处理host部分和端口分隔符
                 if (str[index - 1] == ']') { in_ipv6 = false; } // 如果前一个字符是]，说明IPv6地址结束，清除IPv6标志
                 if (!in_ipv6) {
                     // 要进入这个if语句有两种情况:
                     //  1. URI中没有IPV6地址, in_ipv6字段一直为false
                     //  2. URI中有IPV地址, in_ipv6字段在上一个case分支中被设置为true,
                     //     又在index走过ipv6地址后, 在这个case分支的第一个if语句被设置为false
-                    end_idx[URI_HOST] = index; // 标记host字段的结束位置
+                    end_idx[URI_HOST] = index;       // 标记host字段的结束位置
                     start_idx[URI_PORT] = index + 1; // host后跟port（也可能不跟）
                     pre_state = URI_PORT;
                 }
                 continue;
-            case URI_QUERY: // 遇到查询字符串分隔符?时，处理查询部分
+            case URI_QUERY:                 // 遇到查询字符串分隔符?时，处理查询部分
                 end_idx[pre_state] = index; // 因为不知道 ？ 之前的状态是什么(存在多种情况), 所以使用之前记录的pre_state
                 start_idx[URI_QUERY] = index + 1;
                 pre_state = URI_QUERY;
                 skip_path = true;
                 continue;
-            case URI_FRAGMENT: // 遇到片段分隔符#时，处理片段部分
+            case URI_FRAGMENT:              // 遇到片段分隔符#时，处理片段部分
                 end_idx[pre_state] = index; // 因为不知道 # 之前的状态是什么(存在多种情况), 所以使用之前记录的pre_state
                 start_idx[URI_FRAGMENT] = index + 1;
                 end_idx[URI_FRAGMENT] = index + strlen(str + index);
@@ -325,7 +325,7 @@ int URIParser::parse(const char *str, ParsedURI &uri) {
         }
     }
     // 如果解析没有到达最终状态，设置当前状态的结束索引为当前位置
-    if (pre_state != URI_PART_ELEMENTS) end_idx[pre_state] = index;
+    if (pre_state != URI_PART_ELEMENTS) { end_idx[pre_state] = index; }
 
     // 如果没有跳过路径解析, 处理路径后的查询和片段部分
     if (!skip_path) {
@@ -376,7 +376,7 @@ int URIParser::parse(const char *str, ParsedURI &uri) {
             // 对host组件特殊处理, 去除IPv6地址的方括号
             if (i == URI_HOST && str[start_idx[i]] == '[' && str[end_idx[i] - 1] == ']') {
                 len -= 2;
-                memcpy(*dst[i], str + start_idx[i] + 1, len); // 复制时去掉括号
+                memcpy(*dst[i], str + start_idx[i] + 1, len);    // 复制时去掉括号
             } else { memcpy(*dst[i], str + start_idx[i], len); } // 直接复制
 
             (*dst[i])[len] = '\0'; // 为每个组件添加字符串终止符, 方便后续使用
@@ -392,8 +392,8 @@ int URIParser::parse(const char *str, ParsedURI &uri) {
 }
 
 // 解析URI查询字符串(即URL中 ?后面的部分). 能够处理同一个键对应多个值的情况（例如 ?key=val1&key=val2）
-std::map<std::string, std::vector<std::string>> URIParser::split_query_strict(const std::string &query) {
-    std::map<std::string, std::vector<std::string>> res;
+std::map<std::string, std::vector<std::string> > URIParser::split_query_strict(const std::string &query) {
+    std::map<std::string, std::vector<std::string> > res;
 
     if (query.empty()) { return res; }
 

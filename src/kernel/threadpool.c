@@ -32,7 +32,7 @@ struct threadpool {
     size_t stacksize; // 线程的调用栈的大小
     pthread_t tid;
     pthread_mutex_t mutex; // 控制不同线程对公共变量(msgqueue, nthreads, stacksize, tid...)的修改
-    pthread_key_t key;
+    pthread_key_t key; // 与线程池的地址关联，
     pthread_cond_t *terminate;
 };
 
