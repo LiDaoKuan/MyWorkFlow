@@ -29,7 +29,7 @@
 #include <openssl/ssl.h>
 #include "Communicator.h"
 
-// 通信调度对象基类
+// 通信调度对象基类（负载均衡）
 class CommSchedObject {
 public:
     // 获取最大负载
@@ -74,12 +74,12 @@ public:
 
 private:
     // 从连接池中获取一个可用连接
-    CommTarget *acquire(int wait_timeout) final;
+    CommTarget *acquire(int wait_timeout) override final;
     // 将连接归还给连接池
     void release() final;
 
 private:
-    CommSchedGroup *group; // 连接池组管理
+    CommSchedGroup *group; // 管理该CommSchedTarget的CommSchedGroup
     int index; // 在组中的索引
     int wait_cnt; // 当前等待连接的线程数
     pthread_mutex_t mutex;

@@ -158,7 +158,7 @@ static T *__get_object_list(const std::string &name, struct rb_root *root, bool 
 
 class __WFNamedTimerTask;
 
-// 连接器. 作为节点同时存在于红黑树管理的链表和任务对象中. 在任务对象和链表之间建立联系.
+// 连接器. 作为节点同时存在于任务对象和红黑树管理的链表中. 在任务对象和链表之间建立联系.
 // 为什么不直接在任务对象中采用侵入式链表？？？ 因为侵入式链表严重依赖宏 list_entry, 而该宏仅仅只能作用于标准布局下的对象
 struct __timer_node {
     list_head list; // 链表节点. 记录在链表中的位置

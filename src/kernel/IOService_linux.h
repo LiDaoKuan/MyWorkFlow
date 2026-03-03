@@ -69,6 +69,9 @@ public:
     friend class Communicator;
 };
 
+/**
+ * Linux平台AIO封装
+ */
 class IOService {
 public:
     /* 初始化 AIO 上下文和内部资源 */
@@ -81,7 +84,7 @@ public:
     int request(IOSession *session);
 
 private:
-    /* 服务停止时通知(默认空实现) */
+    /* 服务停止时通知(默认空实现) */ /* 为什么默认空实现？？？而不是设计成纯虚函数？ */
     virtual void handle_stop(int error) {}
 
     /* 所有会话处理完成后的回调通知 */

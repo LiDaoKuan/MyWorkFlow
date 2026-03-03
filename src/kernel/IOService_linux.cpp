@@ -170,7 +170,7 @@ struct io_event {
 #undef PADDEDul
 
 // 创建并初始化一个异步I/O上下文.
-// 注意参数ctxp是一个二重指针
+// 注意参数ctxp是一个二级指针！！！
 // 如果创建成功, (*ctxp)会指向创建完成的上下文, 该上下文是内核和应用程序之间进行异步IO通信的控制中心, 同时函数还会返回非负值
 // 如果创建失败, 则返回小于0的值
 static inline int io_setup(int maxevents, io_context_t *ctxp) {

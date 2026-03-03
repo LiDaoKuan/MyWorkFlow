@@ -46,6 +46,7 @@ public:
     void dispatch() override {
         // 将实际的网络请求发起工作委托给了CommScheduler.
         // scheduler->request是一个异步操作, 它会将请求提交给底层的Communicator(通信器), 然后立即返回, 不会阻塞当前线程
+        // 注意最后一个参数是传出参数，也就是说获取到请求成功后的对端信息。
         if (this->scheduler->request(this, this->object, this->wait_timeout, &this->target) < 0) {
             // 返回值<0表示出现了错误
             this->handle(CS_STATE_ERROR, errno); // 立即失败
@@ -56,7 +57,7 @@ protected:
     int state = 0;
     int error = 0;
 
-    CommTarget *target{nullptr}; // 最终使用的连接目标
+    CommTarget *target{nullptr}; // 请求目标（可能是单个目标，也可能是一个CommSchedGroup）
 
 #define TOR_NOT_TIMEOUT         0       // 非超时错误. 可能是连接被拒绝、DNS解析失败、SSL握手错误等
 #define TOR_WAIT_TIMEOUT        1       // 等待资源超时. 在连接池中等待可用连接的时间超过设定值, 表示后端服务可能过载或连接池大小不足
@@ -65,8 +66,8 @@ protected:
     int timeout_reason{0};
 
 protected:
-    int wait_timeout; // 获取连接的超时时间
-    CommSchedObject *object; // 调度对象（如特定服务器连接池）
+    int wait_timeout;         // 获取连接的超时时间
+    CommSchedObject *object;  // 调度对象（如特定服务器连接池）
     CommScheduler *scheduler; // 通信调度器
 
 protected:

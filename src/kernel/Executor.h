@@ -68,7 +68,7 @@ protected:
     ExecQueue *get_queue();
 
 private:
-    ExecQueue *queue{nullptr}; // 记录本任务由哪个 ExecQueue管理
+    ExecQueue *queue{nullptr}; // 记录本任务由哪个 ExecQueue 管理
 
 public:
     virtual ~ExecSession() = default;

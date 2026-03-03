@@ -45,8 +45,8 @@ public:
         void *cookie;
 
         // request_object: 路由结果的核心, 指向一个可被调度的连接对象. 具体可能是两种类型:
-        // - CommSchedTarget: 当 DNS 解析结果只有一个 IP 地址时, 它直接代表一个具体的服务器目标.
-        // - CommSchedGroup: 当 DNS 解析结果有多个 IP 地址(即多个目标)时, 它是一个负载均衡组, 内部根据策略(如轮询或一致性哈希)选择一个目标进行连接
+        // - CommSchedTarget: 当 DNS 解析结果只有一个 IP 地址时, 它直接代表一个具体的服务器目标. 同时内部又拥有连接池，可以复用已有连接
+        // - CommSchedGroup: 当 DNS 解析结果有多个 IP 地址(即多个目标)时, 它是一个负载均衡组, 内部根据策略(小顶堆)，选择一个低负载CommSchedTarget向目标发起连接
         CommSchedObject *request_object;
 
         RouteResult() : cookie(nullptr), request_object(nullptr) {}

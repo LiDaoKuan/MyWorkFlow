@@ -1,9 +1,9 @@
 #include <iostream>
 #include <unistd.h>
-#include <WFTaskFactory.h>
-#include <WFFacilities.h>
+// #include <WFTaskFactory.h>
+// #include <WFFacilities.h>
 #include <csignal>
-
+/*
 namespace HTTP_TEST {
     // 发起一个http请求
 
@@ -58,5 +58,22 @@ namespace HTTP_TEST {
 
 int main() {
     HTTP_TEST::test();
+    return 0;
+}*/
+
+#include <iostream>
+#include <unistd.h>
+#include <sys/syscall.h>
+
+int main() {
+    int fd = 0; // 标准输入文件描述符
+    char buffer[100];
+    ssize_t num_bytes;
+    num_bytes = syscall(SYS_read, fd, buffer, sizeof(buffer));
+    if (num_bytes > 0) {
+        std::cout << "读取到的内容：" << std::string(buffer, num_bytes) << std::endl;
+    } else {
+        std::cout << "读取文件失败" << std::endl;
+    }
     return 0;
 }

@@ -68,6 +68,10 @@ public:
     friend class Communicator;
 };
 
+
+/**
+ * windows平台实现，使用pipe作为通知机制
+ */
 class IOService {
 public:
     int init(int maxevents);
