@@ -175,6 +175,7 @@ public:
                         CommScheduler *scheduler, timer_callback_t &&cb);
 
 public:
+    // 取消所有名字为name的定时器
     int cancel(const std::string &name, size_t max);
 
 private:
@@ -223,7 +224,7 @@ protected:
 
 private:
     __timer_node node_{}; // 用于将对象自身和链表中的节点联系起来
-    __NamedTimerMap::TimerList *timers_{nullptr}; // 链表. 存储所有共享同一名称的定时器任务
+    __NamedTimerMap::TimerList *timers_{nullptr}; // 该对象所在的链表
     std::atomic<bool> flag_{}; // 标记定时器是否已经被取消
     std::mutex mutex_{};
     friend class __NamedTimerMap;

@@ -105,9 +105,8 @@ namespace protocol {
          * msg->get_parsed_body(&body, &size);
          * msg->append_output_body_nocopy(body, size); */
 
-        // 零拷贝或单次拷贝优化的HTTP消息体追加函数
+        // 零拷贝或单次拷贝优化的HTTP消息体追加函数，将数据拷贝到新分配的内存中，然后添加到输出链表
         bool append_output_body(const void *buf, size_t size);
-        // 将数据拷贝到新分配的内存中，然后添加到输出链表
         bool append_output_body(const char *buf) {
             return this->append_output_body(buf, strlen(buf));
         }

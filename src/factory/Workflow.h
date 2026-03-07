@@ -136,10 +136,10 @@ private:
     SubTask *buf[4]{nullptr}; // 初始的静态缓冲区, 避免小规模任务时的频繁内存分配
     SubTask *first; // 指向第一个要执行的任务, 是工作流的起点. 该任务不在队列中, 和队列独立分开管理
     SubTask *last; // 指向串行队列中最后一个任务？？？
-    SubTask **queue; // 指向一个动态数组, 作为任务队列的核心存储
+    SubTask **queue; // 指向一个动态数组（环形缓冲区RingBuffer）, 作为环形任务队列
     int queue_size; // 队列容量
     int front; // 队首索引
-    int back; // 队尾索引
+    int back; // 队尾索引。指向最后一个有效元素的下一个位置
     bool canceled; // 取消标志, 为true时会中止工作流并跳过后续所有任务
     bool finished; // 标记任务流是否完成？
     const ParallelTask *in_parallel; // 指向该任务流所属的并行任务流

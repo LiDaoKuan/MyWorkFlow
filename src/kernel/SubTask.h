@@ -46,6 +46,7 @@ protected:
 public:
     [[nodiscard]] void *get_pointer() const { return pointer_; }
 
+    // 记录管理该SubTask的SeriesWork
     void set_pointer(void *pointer) { this->pointer_ = pointer; }
 
 private:
