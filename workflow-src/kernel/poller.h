@@ -80,7 +80,7 @@ struct poller_data {
         /* 在异步发送数据时，每当有部分数据被成功写入内核缓冲区后调用，可用于更新超时时间 */
         int (*partial_written)(size_t, void *);
 
-        /* 当监听socket有新连接到达时调用，用于接受连接并创建新的通信fd */
+        /* 当监听socket有新连接到达时调用，用于接受连接并创建链接上下文. 实际上调用的是: Communicator::create_target(...) */
         void * (*accept)(const struct sockaddr *, socklen_t, int, void *);
 
         /* 该回调函数负责解析接收到的数据报(用const void* 接收)，并结合发送方地址(sockaddr*)进行业务逻辑处理 */

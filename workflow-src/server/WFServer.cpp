@@ -266,7 +266,7 @@ int WFServerBase::start(int family, const char *host, unsigned short port,
 
     // 将端口号转换为字符串
     snprintf(port_str, PORT_STR_MAX + 1, "%d", port);
-    // DNS解析
+    // DNS解析（如果host为nullptr，addrinfo里得到的ip就是0.0.0.0）
     ret = getaddrinfo(host, port_str, &hints, &addrinfo);
     if (ret == 0) {
         // 使用解析结果绑定启动服务器

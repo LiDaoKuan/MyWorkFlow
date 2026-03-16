@@ -230,7 +230,7 @@ protected:
 template <class REQ, class RESP>
 void WFServerTask<REQ, RESP>::handle(int state, int error) {
     if (state == WFT_STATE_TOREPLY) {
-        // 需要服务器回复的请求
+        // 需要服务器回复的请求（其实大多数请求都需要回复）
         this->state = WFT_STATE_TOREPLY;
         this->target = this->get_target(); // 获取与此任务相关的通信目标
         // 创建一个 Series对象(一个特殊的系列工作流), 并将当前任务作为其最后一个任务.

@@ -153,7 +153,12 @@ public:
         return this->get_seq();
     }
 
-    // 获取对端地址(客户端或服务器地址)
+    /**
+     * @brief 获取对端地址(客户端或服务器地址)
+     * @param addr 外部准备好的空间, 函数会将对端sockaddr数据复制到*addr位置
+     * @param addrlen 外部传入的 *addr 的长度. 一般用考虑ipv4和ipv6地址长度不同. 注意是外部传入, 不是内部传出
+     * @return 成功返回0, 失败返回-1
+     */
     int get_peer_addr(sockaddr *addr, socklen_t *addrlen) const;
 
     // (纯虚函数)获取底层的连接对象, 由具体协议实现

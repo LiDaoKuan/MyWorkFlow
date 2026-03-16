@@ -918,7 +918,7 @@ void Communicator::handle_write_result(struct poller_result *res) {
     }
 }
 
-/* 接收新的客户端连接 */
+/* 为新连接创建连接管理上下文 */
 CommConnEntry *Communicator::accept_conn(CommServiceTarget *target, CommService *service) {
     CommConnEntry *entry = nullptr;
     size_t size;
@@ -1014,7 +1014,7 @@ void Communicator::handle_connect_result(poller_result *res) {
     }
 }
 
-//
+// 处理 accept 操作结果 （虽然名字叫 handle_listen_result, 但此时 accept 操作已经完成）
 void Communicator::handle_listen_result(poller_result *res) {
     auto service = static_cast<CommService *>(res->data.context);
     CommConnEntry *entry;
@@ -1022,7 +1022,7 @@ void Communicator::handle_listen_result(poller_result *res) {
     int timeout;
 
     switch (res->state) {
-    case PR_ST_SUCCESS:                                              // I/O操作成功
+    case PR_ST_SUCCESS:                                              // accept 操作成功
         target = static_cast<CommServiceTarget *>(res->data.result); // 获取对端信息
         entry = accept_conn(target, service);                        // 为新连接创建一个CommConnEntry条目, 用于管理该连接后续的所有状态和I/O操作
         if (entry) {
@@ -1041,8 +1041,8 @@ void Communicator::handle_listen_result(poller_result *res) {
                 res->data.message = nullptr;
                 timeout = target->response_timeout; // 采用目标默认的超时时间
             }
-            /**理论上，在 handle_listen_result函数中，当成功接受连接后，操作类型通常会被设置为新的类型（如 PD_OP_READ），
-             * 因此 res->data.operation仍然为 PD_OP_LISTEN的情况非常罕见或可能表示一种异常或未初始化的状态.
+            /**理论上，在 handle_listen_result 函数中，当成功接受连接后，操作类型通常会被设置为新的类型（如 PD_OP_READ），
+             * 因此 res->data.operation仍然为 PD_OP_LISTEN 的情况非常罕见或可能表示一种异常或未初始化的状态.
              * 此时，if条件不成立，分支内的代码被跳过，可能是因为没有有效的连接需要处理，或者操作状态未能正确更新 */
             if (res->data.operation != PD_OP_LISTEN) {
                 // 将新的连接套接字注册到多路复用器(mpoller)上，以便异步监听后续的I/O事件(SSL握手或数据读取)
@@ -1219,7 +1219,7 @@ void Communicator::handle_poller_result(poller_result *res) {
     case PD_OP_SSL_CONNECT: // SSL 客户端握手
         this->handle_connect_result(res);
         break;
-    case PD_OP_LISTEN: // 接收新连接
+    case PD_OP_LISTEN: // 接收TCP连接请求
         this->handle_listen_result(res);
         break;
     case PD_OP_RECVFROM: // 无连接协议, 专门用于处理UDP数据报
@@ -1457,7 +1457,7 @@ int Communicator::partial_written(size_t n, void *context) {
     return 0;
 }
 
-// 为新连接创建管理上下文CommServiceTarget
+// 为新accept到的连接创建管理上下文CommServiceTarget
 void *Communicator::create_target(const sockaddr *addr, const socklen_t addrlen, const int sockfd, void *context) {
     auto service = static_cast<CommService *>(context);
     auto target = new CommServiceTarget;
@@ -1508,10 +1508,14 @@ void *Communicator::recvfrom(const sockaddr *addr, const socklen_t addrlen, cons
     return nullptr;
 }
 
-// 将poller检测到的IO事件传递给上层的业务处理逻辑
+/**
+ *
+ * @param res 实际上是 poller_node 强转得到
+ * @param context 实际上是 Communicator* 类型
+ */
 void Communicator::callback(poller_result *res, void *context) {
     auto comm = static_cast<Communicator *>(context);
-    // 将包含 I/O 事件详细信息的 poller_result结构体指针 res放入 Communicator所拥有的消息队列 comm->msgqueue中
+    // 将包含 I/O 事件详细信息的 poller_result 结构体指针 res 放入 Communicator 所拥有的消息队列 comm->msgqueue中
     // 这是异步处理的关键: 它使得产生 I/O 事件的poller线程可以立即返回, 继续监听新的 I/O 事件, 而不需要阻塞在原地等待事件被处理完毕
     msgqueue_put(res, comm->msgqueue);
 }
@@ -1579,7 +1583,7 @@ int Communicator::init(size_t poller_threads, size_t handler_threads) {
         errno = EINVAL;
         return -1;
     }
-
+    // 创建管理IO事件的线程池
     if (this->create_poller(poller_threads) >= 0) {
         if (this->create_handler_threads(handler_threads) >= 0) {
             this->event_handler = nullptr; // 为未来预留的扩展接口？？？
@@ -1793,7 +1797,7 @@ int Communicator::nonblock_listen(CommService *service) {
     return -1;
 }
 
-// 启动服务端的监听sock
+// 启动服务端的监听sock. (socket->bind->listen)
 int Communicator::bind(CommService *service) {
     const int errno_bak = errno; // 保存原errno
     const int sockfd = this->nonblock_listen(service);
@@ -1806,11 +1810,14 @@ int Communicator::bind(CommService *service) {
             .context = service,
             .result = nullptr
         };
+        // 可靠连接，如TCP
         if (service->reliable) {
-            data.operation = PD_OP_LISTEN;             // 可靠连接，如TCP
-            data.accept = Communicator::create_target; // 设置连接接受回调
-        } else {
-            data.operation = PD_OP_RECVFROM;        // 非可靠连接，如UDP
+            data.operation = PD_OP_LISTEN;             // 设置 operation 标志，方便IO结果处理线程知道是什么操作
+            data.accept = Communicator::create_target; // 设置连接接受回调（为accept到的新连接创建上下文）
+        }
+        // 非可靠连接，如UDP
+        else {
+            data.operation = PD_OP_RECVFROM;        // 设置 operation 标志
             data.recvfrom = Communicator::recvfrom; // 设置数据报接收回调
         }
         // 注册到mpoller
@@ -2139,7 +2146,7 @@ int Communicator::is_handler_thread() const {
 
 extern "C" void __thrdpool_schedule(const thrdpool_task *task, void *buf, thrdpool_t *pool);
 
-// 增加线程数量
+// 增加IO结果处理线程的数量
 int Communicator::increase_handler_thread() {
     // void *buf = malloc(4 * sizeof(void *));
     void *buf = malloc(sizeof(struct __thrdpool_task_entry) + sizeof(void *));

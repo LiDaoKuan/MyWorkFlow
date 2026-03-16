@@ -28,9 +28,12 @@
 #include <sys/uio.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
 #include <cstddef>
 #include <pthread.h>
 #include <ctime>
+#include <string>
+
 #include "list.h"
 #include "poller.h"
 #include "mpoller.h"
@@ -106,6 +109,7 @@ private:
 
 public:
     virtual ~CommMessageOut() = default;
+
     friend class Communicator;
 };
 
@@ -141,6 +145,7 @@ private:
 
 public:
     virtual ~CommMessageIn() = default;
+
     friend class Communicator;
 };
 
@@ -159,6 +164,7 @@ private:
 
     // message_out/message_in: 提供消息处理器, 用于构造请求和解析响应
     virtual CommMessageOut *message_out() = 0;
+
     virtual CommMessageIn *message_in() = 0;
 
     /* 下面四个函数使用了策略模式:
@@ -201,7 +207,9 @@ private:
 
 public:
     CommSession() { this->passive = 0; }
+
     virtual ~CommSession() = 0;
+
     friend class CommMessageIn;
     friend class Communicator;
 };
@@ -211,6 +219,7 @@ class CommService {
 public:
     // 服务端地址绑定、参数配置、资源初始化
     int init(const sockaddr *_bind_addr, socklen_t _addrlen, int _listen_timeout, int response_timeout);
+
     void deinit();      // 释放资源
     int drain(int max); // 优雅关闭，排空现有连接
 
@@ -235,8 +244,10 @@ private:
      *
      * 子类(如WFServer)必须重写此方法, 并返回一个特定于协议(如HTTP、MySQL)的CommSession子类对象(如HttpSession) */
     virtual CommSession *new_session(long long seq, CommConnection *conn) = 0;
+
     // 服务停止的通知回调
     virtual void handle_stop(int error) {}
+
     // 服务解绑的通知回调
     virtual void handle_unbound() = 0;
 
@@ -247,6 +258,7 @@ private:
 
     // 内部生命周期管理
     void incref();
+
     void decref();
 
 private:
@@ -266,6 +278,7 @@ private:
 
 public:
     virtual ~CommService() = default;
+
     friend class CommServiceTarget;
     friend class Communicator;
 };
@@ -279,6 +292,7 @@ class SleepSession {
 private:
     // 获取休眠时长, 通过引用传参输出. 为任务调度提供时间依据(策略模式)
     virtual int duration(timespec *value) = 0;
+
     // 处理状态变更, 响应超时、唤醒等异步事件
     virtual void handle(int state, int error) = 0;
 
@@ -288,6 +302,7 @@ private:
 
 public:
     virtual ~SleepSession() = default;
+
     friend class Communicator;
 };
 
@@ -304,11 +319,13 @@ private:
      * 框架的核心组件(如Communicator)只需要调用 schedule来投递任务，而完全无需关心底层是使用线程池、事件循环还是其他机制来执行这些任务.
      * 这为实现多种不同的调度策略(如单线程队列、多线程工作窃取、优先级队列等)提供了极大的灵活性 */
     virtual void schedule(void (*routine)(void *), void *context) = 0;
+
     // 等待事件就绪. 等待的具体语义完全由子类决定
     virtual void wait() = 0;
 
 public:
     virtual ~CommEventHandler() = default;
+
     friend class Communicator;
 };
 
@@ -316,27 +333,34 @@ public:
 class Communicator {
 public:
     int init(size_t poller_pthreads, size_t handler_threads);
+
     void deinit();
 
     int request(CommSession *session, CommTarget *target);
+
     int reply(CommSession *session);
 
     int push(const void *buf, size_t size, CommSession *session);
 
     int shutdown(CommSession *session);
+
     int bind(CommService *service);
+
     void unbind(CommService *service);
 
     int sleep(SleepSession *session);
+
     int unsleep(SleepSession *session);
 
     int io_bind(IOService *io_service);
+
     void io_unbind(IOService *io_service);
 
 public:
     [[nodiscard]] int is_handler_thread() const;
 
     int increase_handler_thread();
+
     int decrease_handler_thread();
 
     void customize_event_handler(CommEventHandler *handler);
@@ -351,34 +375,45 @@ private:
 
 private:
     int create_poller(size_t poller_threads);
+
     int create_handler_threads(size_t handler_threads);
+
     void shutdown_service(CommService *service);
+
     void shutdown_io_service(IOService *io_service);
+
     int send_message_sync(iovec io_vec[], int cnt, CommConnEntry *entry) const;
+
     int send_message_async(iovec vectors[], int cnt, CommConnEntry *entry) const;
 
     int send_message(CommConnEntry *entry) const;
 
     int request_new_conn(CommSession *session, CommTarget *target);
+
     int request_idle_conn(CommSession *session, CommTarget *target);
 
     int reply_message_unreliable(CommConnEntry *entry);
 
     int reply_reliable(CommSession *session, CommTarget *target);
+
     int reply_unreliable(CommSession *session, CommTarget *target);
 
     void handle_poller_result(poller_result *res);
 
     void handle_incoming_request(poller_result *res);
+
     void handle_incoming_reply(poller_result *res);
 
     void handle_request_result(poller_result *res);
+
     void handle_reply_result(poller_result *res);
 
     void handle_write_result(poller_result *res);
+
     void handle_read_result(poller_result *res);
 
     void handle_connect_result(poller_result *res);
+
     void handle_listen_result(poller_result *res);
 
     void handle_recvfrom_result(poller_result *res);
@@ -392,20 +427,25 @@ private:
     static void handler_thread_routine(void *context);
 
     static int nonblock_connect(CommTarget *target);
+
     static int nonblock_listen(CommService *service);
 
     static CommConnEntry *launch_conn(CommSession *session, CommTarget *target);
+
     static CommConnEntry *accept_conn(class CommServiceTarget *target, CommService *service);
 
     static int first_timeout(CommSession *session);
+
     static int next_timeout(CommSession *session);
 
     static int first_timeout_send(CommSession *session);
+
     static int first_timeout_recv(CommSession *session);
 
     static int append_message(const void *buf, size_t *size, poller_message_t *msg);
 
     static poller_message_t *create_request(void *context);
+
     static poller_message_t *create_reply(void *context);
 
     static int recv_request(const void *buf, size_t size, CommConnEntry *entry);
@@ -413,12 +453,14 @@ private:
     static int partial_written(size_t n, void *context);
 
     static void *create_target(const sockaddr *addr, socklen_t addrlen, int sockfd, void *context);
+
     static void *recvfrom(const sockaddr *addr, socklen_t addrlen, const void *buf, size_t size, void *context);
 
     static void callback(poller_result *res, void *context);
 
 private:
     static void event_handler_routine(void *context);
+
     static void callback_custom(poller_result *res, void *context);
 
 public:

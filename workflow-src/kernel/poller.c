@@ -60,38 +60,43 @@ struct __poller_node {
     // 精巧的内存复用设计。通过联合体（union），使得该节点可以同时作为链表节点或红黑树节点，从而灵活地插入到不同的数据结构中管理，节省了内存
     union {
         struct list_head list; // 指向__poller_node在循环链表中的节点
-        struct rb_node rb; // 指向__poller_node在红黑树中的节点
+        struct rb_node rb;     // 指向__poller_node在红黑树中的节点
     };
 #pragma pack()
-    char in_rbtree; // 标记该节点当前是否在红黑树中
-    char removed; // 标记该节点是否已被移除，用于防止重复操作
-    int event; // 关注的事件掩码。指定感兴趣的事件类型，例如 POLLIN（可读）或 POLLOUT（可写）
-    struct timespec timeout; // 精确的超时时间点. 使用 timespec结构可以支持高精度的定时控制
+    char in_rbtree;            // 标记该节点当前是否在红黑树中
+    char removed;              // 标记该节点是否已被移除，用于防止重复操作
+    int event;                 // 关注的事件掩码。指定感兴趣的事件类型，例如 POLLIN（可读）或 POLLOUT（可写）
+    struct timespec timeout;   // 精确的超时时间点. 使用 timespec结构可以支持高精度的定时控制
     struct __poller_node *res; // 结果指针。可能用于指向操作完成后的结果节点，或在链表中链接下一个节点。
 };
 
 /* 维护着所有被监控的描述符，并驱动事件循环 */
 struct __poller {
     size_t max_open_files; // 设定可监控的最大文件描述符数量，防止资源耗尽
-    void (*callback)(struct poller_result *, void *); // 当监控的fd有事件发生时，会调用callback函数，并将context作为参数传递，用于处理具体的I/O业务逻辑
-    void *context; // 事件处理的上下文？？？
+
+    // 当监控的fd有事件发生时，会调用callback函数，并将context作为参数传递，用于处理具体的I/O业务逻辑.
+    // 如果用户没用自定义，那么就是: Communicator::callback
+    // 如果用户在上层自定义了事件处理器, 那么就是: Communicator::callback_custom
+    void (*callback)(struct poller_result *, void *);
+
+    void *context; // 实际上是 Communicator 类的指针
 
     pthread_t tid; // tid记录了运行事件循环的线程ID
-    int pfd; // pfd通常是 epoll 的内核事件表
-    int timerfd; // 定时器的文件描述符，用于精确管理时间
+    int pfd;       // pfd通常是 epoll 的内核事件表
+    int timerfd;   // 定时器的文件描述符，用于精确管理时间
     // 用于线程间通信，常见于唤醒阻塞在I/O多路复用调用（如epoll_wait）中的工作线程
     int pipe_rd; // 读端
     int pipe_wr; // 写端
     int stopped; // stopped是一个标志，用于安全地停止事件循环
     /* 下面是多层次的数据结构，用于高效管理大量连接 */
-    struct rb_root timeo_tree; // 红黑数根节点. 根据超时时间对节点进行排序，便于快速查找和处理最早超时的节点
-    struct rb_node *tree_first; // 指向红黑数的最小节点. 用于快速获取最近要超时的节点
-    struct rb_node *tree_last; // 指向红黑数的最大节点。
-    struct list_head timeo_list; // 循环链表头节点. 设置了超时时间的链表. 该链表的最大超时节点的超时时间一定大于红黑树中所有节点的超时时间
+    struct rb_root timeo_tree;      // 红黑数根节点. 根据超时时间对节点进行排序，便于快速查找和处理最早超时的节点
+    struct rb_node *tree_first;     // 指向红黑数的最小节点. 用于快速获取最近要超时的节点
+    struct rb_node *tree_last;      // 指向红黑数的最大节点。
+    struct list_head timeo_list;    // 循环链表头节点. 设置了超时时间的链表. 该链表的最大超时节点的超时时间一定大于红黑树中所有节点的超时时间
     struct list_head no_timeo_list; // 没有设置超时时间的链表
-    struct __poller_node **nodes; // 节点指针数组. 提供了一种通过文件描述符（fd）作为索引来快速查找对应 __poller_node的方法
-    pthread_mutex_t mutex; // 保证在多线程环境下对核心数据结构的访问是线程安全的
-    char buf[POLLER_BUFSIZE]; // 内部共享缓冲区. 用于临时存储I/O数据或控制信息，减少内存分配开销
+    struct __poller_node **nodes;   // 节点指针数组. 提供了一种通过文件描述符（fd）作为索引来快速查找对应 __poller_node的方法
+    pthread_mutex_t mutex;          // 保证在多线程环境下对核心数据结构的访问是线程安全的
+    char buf[POLLER_BUFSIZE];       // 内部共享缓冲区. 用于临时存储I/O数据或控制信息，减少内存分配开销
 };
 
 #ifdef __linux__
@@ -165,7 +170,7 @@ static inline int __poller_add_timerfd(int timerfd, poller_t *poller) {
 /* 设置timerfd的超时时间 */
 static inline int __poller_set_timerfd(int timerfd, const struct timespec *abstime, poller_t *poller) {
     struct itimerspec timer = {
-        .it_interval = {}, // it_interval.tv_sec: 循环间隔的秒数. it_value.tv_nsec: 循环间隔的纳秒数. 不设置表示
+        .it_interval = {},   // it_interval.tv_sec: 循环间隔的秒数. it_value.tv_nsec: 循环间隔的纳秒数. 不设置表示
         .it_value = *abstime // it_value.tv_sec 首次超时的秒数. it_value.tv_nsec: 首次超时的毫秒数
     };
     return timerfd_settime(timerfd, TFD_TIMER_ABSTIME, &timer, NULL);
@@ -304,7 +309,7 @@ static void __poller_tree_insert(struct __poller_node *node, poller_t *poller) {
         // 新节点超时时间 ≥ 当前最大超时节点
         // 将新节点插入到当前最大超时节点tree_last的右子树上
         parent = poller->tree_last;
-        p = &parent->rb_right; // 令 p(二重指针) 指向 "指向目标插入位置的指针(一重指针)"
+        p = &parent->rb_right;         // 令 p(二重指针) 指向 "指向目标插入位置的指针(一重指针)"
         poller->tree_last = &node->rb; // 更新 tree_last 为新插入的节点
     } else {
         // 新节点超时时间 < 当前最大超时节点
@@ -325,8 +330,8 @@ static void __poller_tree_insert(struct __poller_node *node, poller_t *poller) {
             poller->tree_first = &node->rb;
         }
     }
-    node->in_rbtree = 1; // 标记node插入红黑数中
-    rb_link_node(&node->rb, parent, p); // 将node插入红黑数中
+    node->in_rbtree = 1;                             // 标记node插入红黑数中
+    rb_link_node(&node->rb, parent, p);              // 将node插入红黑数中
     rb_insert_color(&node->rb, &poller->timeo_tree); // 平衡红黑数
 }
 
@@ -341,7 +346,7 @@ static inline void __poller_tree_erase(struct __poller_node *node, poller_t *pol
         poller->tree_last = rb_prev(&node->rb);
     }
     rb_erase(&node->rb, &poller->timeo_tree); // 从红黑数中删除node
-    node->in_rbtree = 0; // 标记 node 已经从红黑数中移除
+    node->in_rbtree = 0;                      // 标记 node 已经从红黑数中移除
 }
 
 /* 将node从poller的红黑数或者循环链表中移除 */
@@ -496,7 +501,7 @@ static void __poller_handle_read(struct __poller_node *node, poller_t *poller) {
             // __poller_append_message()会修改 n 为实际接收的字节数
             if (__poller_append_message(p, &n, node, poller) >= 0) {
                 nleft -= n; // 消费已处理的数据
-                p += n; // 移动缓冲区指针
+                p += n;     // 移动缓冲区指针
             } else {
                 nleft = -1; // 消息组装出现错误（如协议错误）
             }
@@ -540,10 +545,10 @@ static void __poller_handle_read(struct __poller_node *node, poller_t *poller) {
 /* 将数据写入 socket（包括普通 TCP 和 SSL 连接），并管理写缓冲区的状态 */
 static void __poller_handle_write(struct __poller_node *node, poller_t *poller) {
     struct iovec *iov = node->data.write_iov; // iov可能是一个iovec数组
-    size_t count = 0; // 本次调用累计已经写入的字节数
-    ssize_t nleft; // 单次系统调用已经写入的字节数
-    int iovcnt; // 当前批次处理的iovec数量
-    int ret = 0; // 错误状态标识
+    size_t count = 0;                         // 本次调用累计已经写入的字节数
+    ssize_t nleft;                            // 单次系统调用已经写入的字节数
+    int iovcnt;                               // 当前批次处理的iovec数量
+    int ret = 0;                              // 错误状态标识
 
     // 只要还有数据待写入就持续尝试
     while (node->data.iovcnt > 0) {
@@ -627,11 +632,11 @@ static void __poller_handle_listen(struct __poller_node *node, poller_t *poller)
         const int sockfd = accept(node->data.fd, addr, &addrlen);
         if (sockfd < 0) {
             if (errno == EAGAIN || errno == EMFILE || errno == ENFILE) return; // 临时性错误，返回等待下一次事件
-            else if (errno == ECONNABORTED) continue; // 连接中止。忽略并继续接收下一个
-            else break; // 其他严重错误，跳出循环
+            else if (errno == ECONNABORTED) continue;                          // 连接中止。忽略并继续接收下一个
+            else break;                                                        // 其他严重错误，跳出循环
         }
-        void *result = node->data.accept(addr, addrlen, sockfd, node->data.context);
-        if (!result) { break; } // accept返回NULL，表示创建上下文失败，跳出循环
+        void *result = node->data.accept(addr, addrlen, sockfd, node->data.context); // 调用回调函数 Communicator::create_target(...)
+        if (!result) { break; }                                                      // accept返回NULL，表示创建上下文失败，跳出循环
         res->data = node->data;
         res->data.result = result; // 存储新创建的连接上下文
         res->error = 0;
@@ -642,7 +647,7 @@ static void __poller_handle_listen(struct __poller_node *node, poller_t *poller)
         // 通知完成后，它立即为下一次可能的连接接受分配新的资源。res的内存应该会在callback()中被释放掉，因此此处需要重新申请
         // 这种 预先分配 的策略旨在提升性能，避免在连续到达大量新连接时频繁进行内存分配
         res = (struct __poller_node *)malloc((sizeof(struct __poller_node)));
-        node->res = res; // 更新node的res指针，为下一次accept做准备
+        node->res = res;     // 更新node的res指针，为下一次accept做准备
         if (!res) { break; } // 如果分配失败，则退出循环
         if (node->removed) { return; }
     }
@@ -655,8 +660,8 @@ static void __poller_handle_listen(struct __poller_node *node, poller_t *poller)
     // 循环终止，将监听节点node从poller中移除
     if (__poller_remove_node(node, poller)) { return; }
     node->error = errno;
-    node->state = PR_ST_ERROR; // 设置错误状态
-    free(node->res); // 释放循环中预分配的资源
+    node->state = PR_ST_ERROR;                                      // 设置错误状态
+    free(node->res);                                                // 释放循环中预分配的资源
     poller->callback((struct poller_result *)res, poller->context); // 通知上层监听失败
 }
 
@@ -1034,7 +1039,7 @@ static void __poller_set_timer(poller_t *poller) {
 
 /* 核心事件循环函数. 处理事件分发 */
 static void *poller_thread_routine(void *arg) {
-    poller_t *poller = (poller_t *)arg; // 传入参数
+    poller_t *poller = (poller_t *)arg;         // 传入参数
     __poller_event_t events[POLLER_EVENTS_MAX]; // 存储epoll监听到的事件
     struct __poller_node time_node;
     struct __poller_node *node;
@@ -1043,9 +1048,9 @@ static void *poller_thread_routine(void *arg) {
     int i = 0;
 
     while (1) {
-        __poller_set_timer(poller); // 设置定时器
+        __poller_set_timer(poller);                                 // 设置定时器
         nevents = __poller_wait(events, POLLER_EVENTS_MAX, poller); // 阻塞等待
-        clock_gettime(CLOCK_MONOTONIC, &time_node.timeout); // 记录当前时间
+        clock_gettime(CLOCK_MONOTONIC, &time_node.timeout);         // 记录当前时间
         has_pipe_event = 0;
         // 循环遍历所有已经发生的事件
         for (i = 0; i < nevents; i++) {
@@ -1151,9 +1156,9 @@ poller_t *__poller_create(void **nodes_buf, const struct poller_params *params) 
             ret = pthread_mutex_init(&poller->mutex, NULL);
             if (ret == 0) {
                 poller->nodes = (struct __poller_node **)nodes_buf;
-                poller->max_open_files = params->max_open_file;
-                poller->callback = params->call_back;
-                poller->context = params->context;
+                poller->max_open_files = params->max_open_file; // 实际上是 sysconf(_SC_OPEN_MAX)
+                poller->callback = params->call_back;           // 实际上是 Communicator::callback(...)
+                poller->context = params->context;              // 实际上是 Communicator 类的指针
 
                 /* 设置红黑数，定时链表，非定时链表 */
                 poller->timeo_tree.rb_node = NULL;
@@ -1177,7 +1182,7 @@ poller_t *__poller_create(void **nodes_buf, const struct poller_params *params) 
     return NULL;
 }
 
-/* 创建poller */
+/* 创建 poller, 似乎并没有被任何函数调用 */
 poller_t *poller_create__(const struct poller_params *params) {
     void **nodes_buf = (void **)calloc(params->max_open_file, sizeof(void *));
     if (nodes_buf) {
@@ -1193,10 +1198,10 @@ poller_t *poller_create__(const struct poller_params *params) {
 
 /* 销毁poller_t实例 */
 void __poller_destroy(poller_t *poller) {
-    pthread_mutex_destroy(&poller->mutex); // 销毁互斥锁
+    pthread_mutex_destroy(&poller->mutex);   // 销毁互斥锁
     __poller_close_timerfd(poller->timerfd); // 关闭定时器文件描述符timerfd
-    __poller_close_pfd(poller->pfd); // 关闭内核事件表对应的文件描述符
-    free(poller); // 释放空间
+    __poller_close_pfd(poller->pfd);         // 关闭内核事件表对应的文件描述符
+    free(poller);                            // 释放空间
 }
 
 /* 销毁poller_t实例 */
@@ -1341,11 +1346,11 @@ static struct __poller_node *__poller_new_node(const struct poller_data *data, i
         return NULL;
     }
 
-    node->data = *data; // 复制操作数据（*data是从其他函数传入的栈数据，当外部函数退出后，*data也会释放，只能赋值一份）
+    node->data = *data;  // 复制操作数据（*data是从其他函数传入的栈数据，当外部函数退出后，*data也会释放，只能赋值一份）
     node->event = event; // 设置epoll事件类型
     node->in_rbtree = 0; // 初始不在红黑树中
-    node->removed = 0; // 标记未被移除
-    node->res = res; // 关联结果节点
+    node->removed = 0;   // 标记未被移除
+    node->res = res;     // 关联结果节点
     if (timeout >= 0) {
         // timeout=0 表示该任务需要被立即处理。而timeout<0则表示该任务常驻(没有超时概念)
         __poller_node_set_timeout(timeout, node);
@@ -1548,9 +1553,9 @@ int poller_add_timer(const struct timespec *value, void *context, void **timer, 
     if (node) {
         memset(&node->data, 0, sizeof(struct poller_data));
         node->data.operation = PD_OP_TIMER; // 标记为定时器操作
-        node->data.fd = -1; // 定时器不关联具体文件描述符
-        node->data.context = context; // 保存用户上下文
-        node->in_rbtree = 0; // 初始化不在红黑树中
+        node->data.fd = -1;                 // 定时器不关联具体文件描述符
+        node->data.context = context;       // 保存用户上下文
+        node->in_rbtree = 0;                // 初始化不在红黑树中
         node->removed = 0;
         node->res = NULL;
 
@@ -1623,9 +1628,9 @@ void poller_stop(poller_t *poller) {
     poller->stopped = 1;
 
     pthread_mutex_lock(&poller->mutex);
-    close(poller->pipe_wr); // 关闭写端是安全的，因为 poller 线程已退出
+    close(poller->pipe_wr);       // 关闭写端是安全的，因为 poller 线程已退出
     __poller_handle_pipe(poller); // 处理管道中可能残留的、未来得及处理的消息
-    close(poller->pipe_rd); // 关闭读端
+    close(poller->pipe_rd);       // 关闭读端
 
     poller->tree_first = NULL;
     poller->tree_last = NULL;
@@ -1635,7 +1640,7 @@ void poller_stop(poller_t *poller) {
         rb_erase(&node->rb, &poller->timeo_tree);
         list_add(&node->list, &node_list);
     }
-    list_splice_init(&poller->timeo_list, &node_list); // 将timeo_list拼接到node_list中
+    list_splice_init(&poller->timeo_list, &node_list);    // 将timeo_list拼接到node_list中
     list_splice_init(&poller->no_timeo_list, &node_list); // 将no_timeo_list拼接到node_list中
     list_for_each(pos, &node_list) {
         node = list_entry(pos, struct __poller_node, list);

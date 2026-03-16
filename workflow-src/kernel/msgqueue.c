@@ -28,17 +28,19 @@
 struct __msgqueue {
     size_t msg_max; // 生产者队列（put队列）的最大消息数量
     size_t msg_cnt; // 生产者队列中的当前消息数量
-    int linkoff; // 链接偏移量. 用于在不侵入消息体本身的情况下，将其链入队列，是实现零拷贝的关键
+    /**链接偏移量. 用于在不侵入消息体本身的情况下，将其链入队列，是实现零拷贝的关键 \n
+     * 在目前的实现中，linkoff = sizeof(poller_result) */
+    int linkoff;
     int nonblock; // 为0时, 可能在队列满/空时阻塞线程; 为1时, 队列操作非阻塞; 只有在线程池准备退出时, 才会设置消息队列非阻塞
-    void *head1; // 两个链表的头指针，是 get_head和 put_head指向的物理基础
+    void *head1;  // 两个链表的头指针，是 get_head和 put_head指向的物理基础
     void *head2;
-    void **get_head; // 消费者队列头指针: 指向head1, 消费者从此队列取消息
-    void **put_head; // 生产者队列头指针: 指向head2, 生产者向此队列添加消息
-    void **put_tail; // 生产者队列尾指针: 指向生产者队列的尾部，用于快速实现O(1)时间复杂度的入队操作
+    void **get_head;           // 消费者队列头指针: 指向head1, 消费者从此队列取消息
+    void **put_head;           // 生产者队列头指针: 指向head2, 生产者向此队列添加消息
+    void **put_tail;           // 生产者队列尾指针: 指向生产者队列的尾部，用于快速实现O(1)时间复杂度的入队操作
     pthread_mutex_t get_mutex; // 保护消费者队列（get_head）的互斥访问，保证多个消费者线程安全
     pthread_mutex_t put_mutex; // 保护生产者队列（put_head, put_tail, msg_cnt）的互斥访问
-    pthread_cond_t get_cond; // 消费者条件变量: 当消费者队列为空时，消费者线程在此等待被唤醒
-    pthread_cond_t put_cond; // 生产者条件变量: 当生产者队列满时，生产者线程在此等待被唤醒
+    pthread_cond_t get_cond;   // 消费者条件变量: 当消费者队列为空时，消费者线程在此等待被唤醒
+    pthread_cond_t put_cond;   // 生产者条件变量: 当生产者队列满时，生产者线程在此等待被唤醒
 };
 
 
@@ -93,12 +95,12 @@ void msgqueue_put_head(void *msg, msgqueue_t *queue) {
     // 插入到生产者消息队列
     while (queue->msg_cnt > queue->msg_max - 1 && !queue->nonblock) { pthread_cond_wait(&queue->put_cond, &queue->put_mutex); }
     // 将新节点插入到生产者消息队列的头部
-    *link = *queue->put_head; // 令该消息的next字段指针指向生产者消息队列的头部
+    *link = *queue->put_head;                      // 令该消息的next字段指针指向生产者消息队列的头部
     if (*link == NULL) { queue->put_tail = link; } // 原生产者消息队列为空
-    *queue->put_head = link; // 更新queue中生产者消息队列的头部
-    queue->msg_cnt++; // 消息数量+1
-    pthread_mutex_unlock(&queue->put_mutex); // 解锁
-    pthread_cond_signal(&queue->get_cond); // 通知一个消费者
+    *queue->put_head = link;                       // 更新queue中生产者消息队列的头部
+    queue->msg_cnt++;                              // 消息数量+1
+    pthread_mutex_unlock(&queue->put_mutex);       // 解锁
+    pthread_cond_signal(&queue->get_cond);         // 通知一个消费者
 }
 
 /**交换生产者和消费者队列, 巧妙地减少了锁竞争,
@@ -140,9 +142,9 @@ void *msgqueue_get(msgqueue_t *queue) {
     pthread_mutex_lock(&queue->get_mutex);
     // 先检查消费者消息队列是否为空
     // 如果为空, 则交换生产者消息队列
-    if (*queue->get_head || msgqueue_swap(queue) > 0) {
-        msg = (char *)*queue->get_head - queue->linkoff; // 获取消息
-        *queue->get_head = *(void **)*queue->get_head; // 更新队列头
+    if (*(queue->get_head) || msgqueue_swap(queue) > 0) {
+        msg = (char *)(*(queue->get_head)) - queue->linkoff; // 获取消息
+        *(queue->get_head) = *(void **)(*(queue->get_head)); // 更新队列头
     } else {
         // 两个队列都为空, 没有消息
         msg = NULL;

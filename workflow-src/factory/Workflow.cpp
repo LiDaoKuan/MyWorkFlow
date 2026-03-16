@@ -59,7 +59,7 @@ void SeriesWork::dismiss_recursive() {
     } while (task);
 }
 
-// 动态扩容任务队列(非线程安全)
+// 动态扩容任务队列(非线程安全, 外部调用者需要自行保证线程安全(外部加锁))
 void SeriesWork::expand_queue() {
     const int size = 2 * this->queue_size;
     auto **new_queue = new SubTask *[size];

@@ -65,7 +65,7 @@ public:
     }
 
     virtual ~SubTask() = default;
-    friend class ParallelTask; // 方便ParallelTask访问SubTask的私有成员
+    friend class ParallelTask;
 };
 
 // parallel: 平行

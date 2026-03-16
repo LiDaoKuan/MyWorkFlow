@@ -8,76 +8,75 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g -ggdb")
 
 set(COMMON_KERNEL_HEADERS
-        src/kernel/Communicator.h
-        src/kernel/list.h
-        src/kernel/mpoller.h
-        src/kernel/poller.h
-        src/kernel/msgqueue.h
-        src/kernel/rbtree.h
-        src/kernel/SubTask.h
-        src/kernel/threadpool.h
-        src/kernel/CommRequest.h
-        src/kernel/CommScheduler.h
-        src/kernel/Executor.h
-        src/kernel/IORequest.h
-        src/kernel/ExecRequest.h
-        src/kernel/SleepRequest.h
+        workflow-src/kernel/Communicator.h
+        workflow-src/kernel/list.h
+        workflow-src/kernel/mpoller.h
+        workflow-src/kernel/poller.h
+        workflow-src/kernel/msgqueue.h
+        workflow-src/kernel/rbtree.h
+        workflow-src/kernel/SubTask.h
+        workflow-src/kernel/threadpool.h
+        workflow-src/kernel/CommRequest.h
+        workflow-src/kernel/CommScheduler.h
+        workflow-src/kernel/Executor.h
+        workflow-src/kernel/IORequest.h
+        workflow-src/kernel/ExecRequest.h
+        workflow-src/kernel/SleepRequest.h
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Android")
-    set(INCLUDE_KERNEL_HEADERS ${COMMON_KERNEL_HEADERS} src/kernel/IOService_linux.h)
-    set(PLATFORM_IO_SOURCE src/kernel/IOService_linux.cpp)
+    set(INCLUDE_KERNEL_HEADERS ${COMMON_KERNEL_HEADERS} workflow-src/kernel/IOService_linux.h)
+    set(PLATFORM_IO_SOURCE workflow-src/kernel/IOService_linux.cpp)
 elseif (UNIX)
-    set(INCLUDE_KERNEL_HEADERS ${COMMON_KERNEL_HEADERS} src/kernel/IOService_thread.h)
-    set(PLATFORM_IO_SOURCE src/kernel/IOService_thread.cpp)
+    set(INCLUDE_KERNEL_HEADERS ${COMMON_KERNEL_HEADERS} workflow-src/kernel/IOService_thread.h)
+    set(PLATFORM_IO_SOURCE workflow-src/kernel/IOService_thread.cpp)
 else ()
     message(FATAL_ERROR "IOService unsupported.")
 endif ()
 
 set(INCLUDE_HEADERS
         ${INCLUDE_KERNEL_HEADERS}
-        src/protocol/ProtocolMessage.h
-        src/protocol/PackageWrapper.h
-        src/protocol/SSLWrapper.h
-        src/protocol/HttpMessage.h
-        src/protocol/http_parser.h
-        src/protocol/HttpUtil.h
-        src/protocol/dns_parser.h
-        src/protocol/dns_types.h
-        src/protocol/DnsMessage.h
+        workflow-src/protocol/ProtocolMessage.h
+        workflow-src/protocol/PackageWrapper.h
+        workflow-src/protocol/SSLWrapper.h
+        workflow-src/protocol/HttpMessage.h
+        workflow-src/protocol/http_parser.h
+        workflow-src/protocol/HttpUtil.h
+        workflow-src/protocol/dns_parser.h
+        workflow-src/protocol/dns_types.h
+        workflow-src/protocol/DnsMessage.h
 
-        src/util/URIParser.h
-        src/util/StringUtil.h
-        src/util/LRUCache.h
-        src/util/DnsUtil.h
+        workflow-src/util/URIParser.h
+        workflow-src/util/StringUtil.h
+        workflow-src/util/LRUCache.h
+        workflow-src/util/DnsUtil.h
 
-        src/factory/Workflow.h
-        src/factory/WFConnection.h
-        src/factory/WFTask.inl  # .inl文件 放在此处？？？
-        src/factory/WFTask.h
-        src/factory/WFGraphTask.h
-        src/factory/WFTaskFactory.h
-        src/factory/WFResourcePool.cpp
-        src/factory/WFResourcePool.h
-        src/factory/WFTaskFactory.inl
-        src/factory/WFTaskError.h
+        workflow-src/factory/Workflow.h
+        workflow-src/factory/WFConnection.h
+        workflow-src/factory/WFTask.inl  # .inl文件 放在此处？？？
+        workflow-src/factory/WFTask.h
+        workflow-src/factory/WFGraphTask.h
+        workflow-src/factory/WFTaskFactory.h
+        workflow-src/factory/WFResourcePool.cpp
+        workflow-src/factory/WFResourcePool.h
+        workflow-src/factory/WFTaskFactory.inl
+        workflow-src/factory/WFTaskError.h
 
-        src/manager/DnsCache.h
-        src/manager/EndpointParams.h
-        src/manager/RouteManager.h
-        src/manager/WFGlobal.h
-        src/manager/WFFacilities.h
-        src/manager/WFFacilities.inl
-        src/manager/WFFuture.h
+        workflow-src/manager/DnsCache.h
+        workflow-src/manager/EndpointParams.h
+        workflow-src/manager/RouteManager.h
+        workflow-src/manager/WFGlobal.h
+        workflow-src/manager/WFFacilities.h
+        workflow-src/manager/WFFacilities.inl
+        workflow-src/manager/WFFuture.h
 
-        src/nameservice/WFNameService.h
-        src/nameservice/WFDnsResolver.h
+        workflow-src/nameservice/WFNameService.h
+        workflow-src/nameservice/WFDnsResolver.h
 
-        src/client/WFDnsClient.h
+        workflow-src/client/WFDnsClient.h
 
-        src/server/WFServer.h
-        src/server/WFHttpServer.h
-
+        workflow-src/server/WFServer.h
+        workflow-src/server/WFHttpServer.h
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/src/kernel)
@@ -89,55 +88,74 @@ include_directories(${CMAKE_SOURCE_DIR}/src/nameservice)
 include_directories(${CMAKE_SOURCE_DIR}/src/client)
 include_directories(${CMAKE_SOURCE_DIR}/src/server)
 
-set(SRC
-        src/kernel/SubTask.cpp
-        src/kernel/poller.c
-        src/kernel/rbtree.c
-        src/kernel/mpoller.c
-        src/kernel/msgqueue.c
-        src/kernel/threadpool.c
-        src/kernel/Communicator.cpp
-        src/kernel/CommRequest.cpp
-        src/kernel/CommScheduler.cpp
-        src/kernel/Executor.cpp
+set(WORKFLOW-SRC
+        workflow-src/kernel/SubTask.cpp
+        workflow-src/kernel/poller.c
+        workflow-src/kernel/rbtree.c
+        workflow-src/kernel/mpoller.c
+        workflow-src/kernel/msgqueue.c
+        workflow-src/kernel/threadpool.c
+        workflow-src/kernel/Communicator.cpp
+        workflow-src/kernel/CommRequest.cpp
+        workflow-src/kernel/CommScheduler.cpp
+        workflow-src/kernel/Executor.cpp
 
-        src/protocol/http_parser.c
-        src/protocol/PackageWrapper.cpp
-        src/protocol/HttpMessage.cpp
-        src/protocol/HttpUtil.cpp
-        src/protocol/dns_parser.c
-        src/protocol/DnsMessage.cpp
-        src/protocol/SSLWrapper.cpp
+        workflow-src/protocol/http_parser.c
+        workflow-src/protocol/PackageWrapper.cpp
+        workflow-src/protocol/HttpMessage.cpp
+        workflow-src/protocol/HttpUtil.cpp
+        workflow-src/protocol/dns_parser.c
+        workflow-src/protocol/DnsMessage.cpp
+        workflow-src/protocol/SSLWrapper.cpp
 
-        src/util/URIParser.cpp
-        src/util/StringUtil.cpp
-        src/util/DnsUtil.cpp
+        workflow-src/util/URIParser.cpp
+        workflow-src/util/StringUtil.cpp
+        workflow-src/util/DnsUtil.cpp
 
-        src/factory/Workflow.cpp
-        src/factory/WFTaskFactory.cpp
-        src/factory/WFGraphTask.cpp
-        src/factory/FileTaskImpl.cpp
+        workflow-src/factory/Workflow.cpp
+        workflow-src/factory/WFTaskFactory.cpp
+        workflow-src/factory/WFGraphTask.cpp
+        workflow-src/factory/FileTaskImpl.cpp
+        workflow-src/factory/HttpTaskImpl.cpp
+        workflow-src/factory/DnsTaskImpl.cpp
 
-        src/manager/RouteManager.cpp
-        src/manager/WFGlobal.cpp
-        src/manager/DnsCache.cpp
-        src/nameservice/WFDnsResolver.cpp
+        workflow-src/manager/RouteManager.cpp
+        workflow-src/manager/WFGlobal.cpp
+        workflow-src/manager/DnsCache.cpp
+        workflow-src/nameservice/WFDnsResolver.cpp
 
-        src/nameservice/WFNameService.cpp
+        workflow-src/nameservice/WFNameService.cpp
 
-        src/client/WFDnsClient.cpp
+        workflow-src/client/WFDnsClient.cpp
 
-        src/server/WFServer.cpp
-        src/factory/HttpTaskImpl.cpp
-        src/factory/DnsTaskImpl.cpp
+        workflow-src/server/WFServer.cpp
+
 )
 
-add_executable(myWorkFlow test.cpp
+add_executable(server server.cpp
         ${INCLUDE_HEADERS}
         ${PLATFORM_IO_SOURCE}
-        ${SRC}
+        ${WORKFLOW-SRC}
+)
+
+add_executable(client client.cpp
+        ${INCLUDE_HEADERS}
+        ${PLATFORM_IO_SOURCE}
+        ${WORKFLOW-SRC}
+)
+
+add_executable(main main.cpp
+        ${INCLUDE_HEADERS}
+        ${PLATFORM_IO_SOURCE}
+        ${WORKFLOW-SRC}
+        MindMapRoute.cpp
+        MindMapRoute.h
 )
 
 find_package(OpenSSL REQUIRED)
 
-target_link_libraries(myWorkFlow PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(server PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+
+target_link_libraries(client PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+
+target_link_libraries(main PRIVATE OpenSSL::SSL OpenSSL::Crypto)
