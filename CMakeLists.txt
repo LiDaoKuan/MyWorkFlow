@@ -79,14 +79,14 @@ set(INCLUDE_HEADERS
         workflow-src/server/WFHttpServer.h
 )
 
-include_directories(${CMAKE_SOURCE_DIR}/src/kernel)
-include_directories(${CMAKE_SOURCE_DIR}/src/protocol)
-include_directories(${CMAKE_SOURCE_DIR}/src/factory)
-include_directories(${CMAKE_SOURCE_DIR}/src/util)
-include_directories(${CMAKE_SOURCE_DIR}/src/manager)
-include_directories(${CMAKE_SOURCE_DIR}/src/nameservice)
-include_directories(${CMAKE_SOURCE_DIR}/src/client)
-include_directories(${CMAKE_SOURCE_DIR}/src/server)
+include_directories(${CMAKE_SOURCE_DIR}/workflow-src/kernel)
+include_directories(${CMAKE_SOURCE_DIR}/workflow-src/protocol)
+include_directories(${CMAKE_SOURCE_DIR}/workflow-src/factory)
+include_directories(${CMAKE_SOURCE_DIR}/workflow-src/util)
+include_directories(${CMAKE_SOURCE_DIR}/workflow-src/manager)
+include_directories(${CMAKE_SOURCE_DIR}/workflow-src/nameservice)
+include_directories(${CMAKE_SOURCE_DIR}/workflow-src/client)
+include_directories(${CMAKE_SOURCE_DIR}/workflow-src/server)
 
 set(WORKFLOW-SRC
         workflow-src/kernel/SubTask.cpp
