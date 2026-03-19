@@ -13,6 +13,7 @@
       <w>ancount</w>
       <w>arcount</w>
       <w>axfr</w>
+      <w>bsoncxx</w>
       <w>bufsize</w>
       <w>caim</w>
       <w>commgroup</w>
@@ -57,6 +58,7 @@
       <w>linkoff</w>
       <w>linkoffset</w>
       <w>mailb</w>
+      <w>matchs</w>
       <w>maxevents</w>
       <w>maxlen</w>
       <w>memcpy</w>
@@ -72,6 +74,7 @@
       <w>nevents</w>
       <w>newnode</w>
       <w>nleft</w>
+      <w>noabi</w>
       <w>noack</w>
       <w>noclose</w>
       <w>noreply</w>

@@ -6,13 +6,23 @@
 #define MYWORKFLOW_HTTPROUTE_H
 
 #include <functional>
-#include <iostream>
+#include <cstring>
 #include <map>
 #include <regex>
 #include <utility>
 
 #include "WFFacilities.h"
 #include "WFTaskFactory.h"
+
+#include <plog/Log.h>
+#include <plog/Formatters/TxtFormatter.h>
+#include <plog/Initializers/ConsoleInitializer.h>
+
+#include <bsoncxx/builder/basic/document.hpp>
+#include <bsoncxx/builder/basic/kvp.hpp>
+#include <mongocxx/instance.hpp>
+#include <mongocxx/pool.hpp>
+#include <mongocxx/uri.hpp>
 
 /**要实现的功能：根据请求的URL和HTTP方法，将请求路由到对应的处理函数进行处理。处理函数可以由外部注入
  * 例如：
@@ -77,7 +87,8 @@ struct RouteInfo {
     HttpMethod method;
     std::string pattern;
     std::regex regex_pattern;
-    std::vector<std::string> param_names;
+    std::vector<std::string> param_names;  // 存储路径中的参数名. 例如: /api/users/{userid}/mindmap/{mapid} 中的 userid 和 mapid
+    std::vector<std::string> params_value; // 存储路径中的参数值
     Handler handler;
 };
 
@@ -88,29 +99,11 @@ public:
         return instance;
     }
 
-    void registerRoute(HttpMethod method, const std::string &pattern, Handler handler) {
-        // 提取路径中的参数名
-        RouteInfo info;
-        info.method = method;
-        info.pattern = pattern;
-        info.handler = std::move(handler);
+    void registerRoute(HttpMethod method, const std::string &pattern, Handler handler);
 
-        // 将路径模式转换为正则表达式
-        parsePathParameters(pattern, info.param_names);
+    void registerRoute(const HttpMethod method, const std::vector<std::string> &patternVec, const Handler &handler);
 
-        // 将 {param} 转为正则表达式捕获组 (.+)
-        info.regex_pattern = buildRegex(pattern);
-
-        // 存储路由信息
-        routes_.insert({method, std::move(info)});
-    }
-
-    void registerRoute(HttpMethod method, const std::vector<std::string>& patternVec, Handler handler) {
-        for (auto &pattern: patternVec) {
-            registerRoute(method, pattern, handler);
-        }
-    }
-
+    /*
     bool route(WFHttpTask *httpTask) {
         // 从任务中提取 URI 和 HTTP 方法
         auto *req = httpTask->get_req();
@@ -133,52 +126,15 @@ public:
 
         // 未找到匹配的路由，返回 404
         return false;
-    }
+    }*/
 
-    bool route(const std::string &uri, const std::string &method, protocol::HttpResponse *response) {
-        HttpMethod http_method = stringToHttpMethod(method);
+    bool route(const std::string &uri, const std::string &method, protocol::HttpResponse *response);
 
-        // 查找匹配的路由
-        // Iterate only over routes matching the specific HTTP method to avoid mismatched regex patterns.
-        // Added explicit flushing and newline to ensure output appears before potential SIGILL.
-        auto range = routes_.equal_range(http_method);
-        for (auto it = range.first; it != range.second; ++it) {
-            const RouteInfo &route_info = it->second;
-            std::smatch matches;
+    // 禁用拷贝构造函数
+    MindMapRoute(const MindMapRoute &) = delete;
 
-            // Use fprintf to stderr with newline and flush to guarantee visibility before crash
-            fprintf(stderr, "DEBUG: Checking pattern: %s\n", route_info.pattern.c_str());
-            fflush(stderr);
-
-            // The SIGILL (Illegal Instruction) often stems from regex engine issues or corrupted regex objects.
-            // We attempt to catch standard exceptions, but note that SIGILL is a signal and cannot be caught by try/catch.
-            // However, we ensure the logic is as safe as possible.
-            try {
-                if (std::regex_match(uri, matches, route_info.regex_pattern)) {
-                    fprintf(stderr, "DEBUG: Pattern matched: %s\n", route_info.pattern.c_str());
-                    fflush(stderr);
-
-                    // Extract path parameters and store in context
-                    auto params = extractParameters(matches, route_info.param_names);
-
-                    // Call the handler function
-                    route_info.handler(response);
-                    return true;
-                } else {
-                    fprintf(stderr, "DEBUG: unmatched: %s\n", route_info.pattern.c_str());
-                    fflush(stderr);
-                }
-            } catch (const std::regex_error &e) {
-                fprintf(stderr, "Regex error during matching: %s\n", e.what());
-                fflush(stderr);
-                continue;
-            } catch (...) {
-                fprintf(stderr, "Unknown exception during regex matching.\n");
-                fflush(stderr);
-                continue;
-            }
-        }
-    }
+    // 禁用赋值运算符
+    MindMapRoute &operator=(const MindMapRoute &) = delete;
 
 private:
     MindMapRoute() = default;
@@ -192,7 +148,6 @@ private:
         std::sregex_iterator it(pattern.begin(), pattern.end(), param_regex);
         const std::sregex_iterator end;
         while (it != end) {
-            printf("it: %s\n", (*it)[1].str().c_str());
             param_names.push_back((*it)[1].str());
             ++it;
         }
@@ -201,7 +156,6 @@ private:
     //  辅助函数，构建正则表达式
     std::regex buildRegex(const std::string &pattern) {
         std::string regex_str = std::regex_replace(pattern, std::regex(R"(\{\w+\})"), "(.+)");
-        printf("regex: %s\n", regex_str.c_str());
         return std::regex("^" + regex_str + "$");
     }
 
@@ -215,5 +169,15 @@ private:
     }
 };
 
+// 获取所有用户
+void handleGetUsers(protocol::HttpResponse *resp);
+
+// 获取用户信息
+void handleGetUserById(protocol::HttpResponse *resp);
+
+// 获取用户所有思维导图
+void handleGetUserMaps(protocol::HttpResponse *resp);
+
+void handleGetMapById(protocol::HttpResponse *resp);
 
 #endif //MYWORKFLOW_HTTPROUTE_H
