@@ -115,7 +115,9 @@ void sig_handler(int signum) { /* NOLINT */
     wait_group.done();
 }
 
-void mongocxxTest();
+void mongocxxFind();
+
+void mongocxxInsert();
 
 int main() {
     plog::init<plog::TxtFormatter>(plog::debug, plog::streamStdOut);
@@ -124,10 +126,9 @@ int main() {
     // const mongocxx::uri uri{"mongodb://localhost:27017/?maxPoolSize=20"};
     // mongocxx::pool pool{uri}; // 连接池
 
-
-
     signal(SIGINT, sig_handler);
-    mongocxxTest();
+    //mongocxxInsert();
+    mongocxxFind();
 
     constexpr unsigned int port = 8080;
     const char *root = ".";
@@ -196,7 +197,24 @@ int main() {
     return 0;
 }
 
-void mongocxxTest() {
+void mongocxxFind() {
+    mongocxx::instance instance{};
+    mongocxx::uri uri{"mongodb://localhost:27017/?maxPoolSize=20"};
+    mongocxx::pool pool{uri};
+
+    const auto client = pool.acquire();
+    auto db = client->database("testDB");
+    auto coll = db["collection_1"];
+    coll.insert_one(bsoncxx::builder::basic::make_document(
+        bsoncxx::builder::basic::kvp("aaa", "aaa"),
+        bsoncxx::builder::basic::kvp("bbb", "bbb")));
+
+    auto result = coll.find_one_and_replace(
+        bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("aaa", "aaa")).view(),
+        bsoncxx::builder::basic::make_document(bsoncxx::builder::basic::kvp("ccc", "ccc")).view());
+}
+
+void mongocxxInsert() {
     mongocxx::instance instance{};
     mongocxx::uri uri{"mongodb://localhost:27017/?maxPoolSize=20"};
     mongocxx::pool pool{uri};
@@ -212,12 +230,14 @@ void mongocxxTest() {
                 ss << getCurrentTime();
                 // Insert a simple document
                 auto result = collection.insert_one(bsoncxx::builder::basic::make_document(
-                        bsoncxx::builder::basic::kvp("thread_id: ", i),
-                        bsoncxx::builder::basic::kvp("time: ", ss.str()),
-                        bsoncxx::builder::basic::kvp("time: ", "test")      // 新值将覆盖旧值。即：每个 key-value 的 key 都唯一
-                        // bsoncxx::builder::basic::kvp("test",bsoncxx::builder::basic::kvp("test","test"))
-                        )
-                    );
+                    bsoncxx::builder::basic::kvp("thread_id: ", i),
+                    bsoncxx::builder::basic::kvp("time: ", ss.str()),
+                    bsoncxx::builder::basic::kvp("test", bsoncxx::builder::basic::make_document(
+                                                     bsoncxx::builder::basic::kvp("inline_1", "inline_value_1"),
+                                                     bsoncxx::builder::basic::kvp("inline_2", "inline_value_2"),
+                                                     bsoncxx::builder::basic::kvp("inline_3", bsoncxx::builder::basic::make_document(
+                                                                                      bsoncxx::builder::basic::kvp("inline_inline_1", "inline_inline_v_1"),
+                                                                                      bsoncxx::builder::basic::kvp("inline_inline_2", "inline_inline_v_2")))))));
 
                 ss.clear();
 
